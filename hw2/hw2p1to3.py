@@ -51,13 +51,14 @@ output = np.vstack((
 bmis_normalized = np.concatenate((male_bmi_normalized, female_bmi_normalized))
 stature_normalized = np.concatenate((male_stature_normalized, female_stature_normalized))
 design_matrix = np.hstack((
-    bmis_normalized.reshape((-1, 1)), stature_normalized.reshape((-1, 1))
+    np.ones(output.shape), bmis_normalized.reshape((-1, 1)), stature_normalized.reshape((-1, 1))
 ))
 
 theta_hat = np.linalg.solve(design_matrix.T @ design_matrix, design_matrix.T @ output)
+n_theta = theta_hat.shape[0]
 
 # Exercise 2 (c) -------------------------------------------------------------------------------------------------------
-theta_hat_var_cvx = cp.Variable((2, 1))
+theta_hat_var_cvx = cp.Variable((n_theta, 1))
 residual_cvx = output - design_matrix @ theta_hat_var_cvx
 prob_cvx = cp.Problem(cp.Minimize(cp.sum_squares(residual_cvx)))
 cost_cvx = prob_cvx.solve()
@@ -149,9 +150,88 @@ fig_loss_mom.tight_layout()
 fig_loss_mom.savefig('hw2p2h.svg')
 fig_loss_mom.savefig('hw2p2h.png')
 
+
 # Exercise 3 ===========================================================================================================
 # Exercise 3 (a) -------------------------------------------------------------------------------------------------------
+def stature_boundary(_bmi, _theta):
+    return -(_theta[1] * _bmi + _theta[0])/_theta[2]
+
+
+n_est = 1_000
+bmi_vals = np.linspace(np.min(bmis_normalized), np.max(bmis_normalized), n_est)
+stature_boundary_vals = stature_boundary(bmi_vals, theta_hat)
+true_male = np.nonzero(output > 0)[0]
+true_female = np.nonzero(output < 0)[0]
+
+fig_classification = plt.figure()
+ax_classification = fig_classification.add_subplot(111)
+ax_classification.grid()
+ax_classification.set_xlabel('BMI (norm.)')
+ax_classification.set_ylabel('Stature (norm.)')
+ax_classification.scatter(bmis_normalized[true_male], stature_normalized[true_male], marker='o', color='b', facecolor=None)
+ax_classification.scatter(bmis_normalized[true_female], stature_normalized[true_female], marker='.', color='r', facecolor=None)
+ax_classification.plot(bmi_vals, stature_boundary_vals, 'k', linewidth=2)
+fig_classification.tight_layout()
+fig_classification.savefig('hw2p3a.svg')
+fig_classification.savefig('hw2p3a.png')
 
 # Exercise 3 (b) -------------------------------------------------------------------------------------------------------
+with open("male_test_data.csv", "r") as csv_file:
+    reader = csv.reader(csv_file, delimiter=',')
+    male_test_data_list = list(reader)
+    male_test_data_types = male_test_data_list[:][0]
+    male_test_data_arr = np.array(male_test_data_list[:][1:], dtype=float)
+    male_test_bmi = male_test_data_arr[:, 1]
+    male_test_stature_mm = male_test_data_arr[:, 2]
+    male_test_bmi_normalized = male_test_bmi * 1e-1
+    male_test_stature_normalized = male_test_stature_mm * 1e-3
+csv_file.close()
+
+# Reading csv file for female data
+with open("female_test_data.csv", "r") as csv_file:
+    reader = csv.reader(csv_file, delimiter=',')
+    female_test_data_list = list(reader)
+    female_test_data_types = female_test_data_list[:][0]
+    female_test_data_arr = np.array(female_test_data_list[:][1:], dtype=float)
+    female_test_bmi = female_test_data_arr[:, 1]
+    female_test_stature_mm = female_test_data_arr[:, 2]
+    female_test_bmi_normalized = female_test_bmi * 1e-1
+    female_test_stature_normalized = female_test_stature_mm * 1e-3
+csv_file.close()
+
+n_male_test = np.shape(male_test_bmi_normalized)[0]
+n_female_test = np.shape(female_test_bmi_normalized)[0]
+
+test_matrix_female = np.hstack((
+    np.ones((n_female_test, 1)), female_test_bmi_normalized.reshape((-1, 1)), female_test_stature_normalized.reshape((-1, 1))
+))
+classification_test_female = np.sign(test_matrix_female @ theta_hat)
+false_positive = np.sum(classification_test_female > 0)
+type_1_error = false_positive / n_female_test
+
+test_matrix_male = np.hstack((
+    np.ones((n_male_test, 1)), male_test_bmi_normalized.reshape((-1, 1)), male_test_stature_normalized.reshape((-1, 1))
+))
+classification_test_male = np.sign(test_matrix_male @ theta_hat)
+false_negative = np.sum(classification_test_male < 0)
+type_2_error = false_negative / n_male_test
+
+n_identified_males_correct = n_male_test - false_negative
+n_identified_males = n_identified_males_correct + false_positive
+
+precision = n_identified_males_correct / n_identified_males
+recall = n_identified_males_correct / n_male_test
+
+fig_classification_test = plt.figure()
+ax_classification_test = fig_classification_test.add_subplot(111)
+ax_classification_test.grid()
+ax_classification_test.set_xlabel('BMI (norm.)')
+ax_classification_test.set_ylabel('Stature (norm.)')
+ax_classification_test.scatter(male_test_bmi_normalized, male_test_stature_normalized, marker='o', color='b', facecolor=None)
+ax_classification_test.scatter(female_test_bmi_normalized, female_test_stature_normalized, marker='.', color='r', facecolor=None)
+ax_classification_test.plot(bmi_vals, stature_boundary_vals, 'k', linewidth=2)
+fig_classification_test.tight_layout()
+fig_classification_test.savefig('hw2p3b.svg')
+fig_classification_test.savefig('hw2p3b.png')
 
 plt.show()
