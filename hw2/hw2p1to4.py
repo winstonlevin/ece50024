@@ -234,4 +234,44 @@ fig_classification_test.tight_layout()
 fig_classification_test.savefig('hw2p3b.svg')
 fig_classification_test.savefig('hw2p3b.png')
 
+# Exercise 4 ===========================================================================================================
+# Exercise 4 (a) -------------------------------------------------------------------------------------------------------
+lam_d = np.arange(0.1, 10, 0.1)
+
+tha_lam = np.empty((n_theta, lam_d.size))
+norm_res = np.empty(lam_d.shape)
+norm_tha = np.empty(lam_d.shape)
+
+XTX = design_matrix.T @ design_matrix
+XTy = design_matrix.T @ output
+
+for idx, lam_i in enumerate(lam_d):
+    tha_lam[:, idx] = np.linalg.solve(XTX + lam_i * np.eye(n_theta), XTy).flatten()
+    norm_res[idx] = np.linalg.norm(design_matrix @ tha_lam[:, idx] - output)**2
+    norm_tha[idx] = np.linalg.norm(tha_lam[:, idx])**2
+
+norm_res_lab = r'$\| X \hat{\theta}_{\lambda} - y \|^2$'
+norm_tha_lab = r'$\| \hat{\theta}_{\lambda} \|^2$'
+lam_lab = r'$\lambda$'
+ydata = (norm_res, norm_res, norm_tha)
+xdata = (norm_tha, lam_d, lam_d)
+ylabs = (norm_res_lab, norm_res_lab, norm_tha_lab)
+xlabs = (norm_tha_lab, lam_lab, lam_lab)
+n_y = len(ylabs)
+
+fig_ridge = plt.figure()
+axes_ridge = []
+
+for idx, y in enumerate(ydata):
+    axes_ridge.append(fig_ridge.add_subplot(n_y, 1, idx+1))
+    ax = axes_ridge[-1]
+    ax.grid()
+    ax.set_xlabel(xlabs[idx])
+    ax.set_ylabel(ylabs[idx])
+    ax.plot(xdata[idx], y, linewidth=2)
+
+fig_ridge.tight_layout()
+fig_ridge.savefig('hw2p4a.svg')
+fig_ridge.savefig('hw2p4a.png')
+
 plt.show()
