@@ -21,7 +21,8 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'$f_X(x)$')
 fig_fx.tight_layout()
-fig_fx.savefig('p1a.svg', format='svg')
+fig_fx.savefig('p1a_output.svg', format='svg')
+fig_fx.savefig('p1a_output.png', format='png')
 
 # Exercise 1 (b) -------------------------------------------------------------------------------------------------------
 np.random.seed(1)
@@ -46,7 +47,8 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'Dens.')
 fig_hist4.tight_layout()
-fig_hist4.savefig('p1b1.svg', format='svg')
+fig_hist4.savefig('p1b1_output.svg', format='svg')
+fig_fx.savefig('p1b1_output.png', format='png')
 
 # Plot 2
 fig_hist1k = plt.figure()
@@ -57,7 +59,8 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'Dens.')
 fig_hist1k.tight_layout()
-fig_hist1k.savefig('p1b2.svg', format='svg')
+fig_hist1k.savefig('p1b2_output.svg', format='svg')
+fig_hist1k.savefig('p1b2_output.png', format='png')
 
 
 # Exercise 1 (c) -------------------------------------------------------------------------------------------------------
@@ -85,7 +88,8 @@ ax.grid()
 ax.set_xlabel('No. Bins')
 ax.set_ylabel('Cross-Validation Score')
 fig_scores.tight_layout()
-fig_scores.savefig('p1c1.svg', format='svg')
+fig_scores.savefig('p1c1_output.svg', format='svg')
+fig_scores.savefig('p1c1_output.png', format='png')
 
 m_opt = np.argmin(scores)
 print('The number of bins with the lowest cost is:')
@@ -100,7 +104,8 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'Dens.')
 fig_histopt.tight_layout()
-fig_histopt.savefig('p1c2.svg', format='svg')
+fig_histopt.savefig('p1c2_output.svg', format='svg')
+fig_histopt.savefig('p1c2_output.png', format='png')
 
 # Display all plots ----------------------------------------------------------------------------------------------------
 plt.show()

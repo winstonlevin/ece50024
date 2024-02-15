@@ -103,8 +103,8 @@ ax_loss.set_ylabel('A Posteriori Loss')
 ax_loss.semilogx(iterations, training_loss_gd, linewidth=8)
 ax_loss.semilogx(iterations[(0, -1), ], (loss_min, loss_min), 'k--', linewidth=8)
 fig_loss.tight_layout()
-fig_loss.savefig('hw2p2f.svg')
-fig_loss.savefig('hw2p2f.png')
+fig_loss.savefig('hw2p2f_output.svg')
+fig_loss.savefig('hw2p2f_output.png')
 
 
 # Exercise 2 (g) -------------------------------------------------------------------------------------------------------
@@ -147,8 +147,8 @@ ax_loss_mom.set_ylabel('A Posteriori Loss')
 ax_loss_mom.semilogx(iterations, training_loss_mom, linewidth=8)
 ax_loss_mom.semilogx(iterations[(0, -1), ], (loss_min, loss_min), 'k--', linewidth=8)
 fig_loss_mom.tight_layout()
-fig_loss_mom.savefig('hw2p2h.svg')
-fig_loss_mom.savefig('hw2p2h.png')
+fig_loss_mom.savefig('hw2p2h_output.svg')
+fig_loss_mom.savefig('hw2p2h_output.png')
 
 
 # Exercise 3 ===========================================================================================================
@@ -172,8 +172,8 @@ ax_classification.scatter(bmis_normalized[true_male], stature_normalized[true_ma
 ax_classification.scatter(bmis_normalized[true_female], stature_normalized[true_female], marker='.', color='r', facecolor=None)
 ax_classification.plot(bmi_vals, stature_boundary_vals, 'k', linewidth=2)
 fig_classification.tight_layout()
-fig_classification.savefig('hw2p3a.svg')
-fig_classification.savefig('hw2p3a.png')
+fig_classification.savefig('hw2p3a_output.svg')
+fig_classification.savefig('hw2p3a_output.png')
 
 # Exercise 3 (b) -------------------------------------------------------------------------------------------------------
 with open("male_test_data.csv", "r") as csv_file:
@@ -231,8 +231,8 @@ ax_classification_test.scatter(male_test_bmi_normalized, male_test_stature_norma
 ax_classification_test.scatter(female_test_bmi_normalized, female_test_stature_normalized, marker='.', color='r', facecolor=None)
 ax_classification_test.plot(bmi_vals, stature_boundary_vals, 'k', linewidth=2)
 fig_classification_test.tight_layout()
-fig_classification_test.savefig('hw2p3b.svg')
-fig_classification_test.savefig('hw2p3b.png')
+fig_classification_test.savefig('hw2p3b_output.svg')
+fig_classification_test.savefig('hw2p3b_output.png')
 
 # Exercise 4 ===========================================================================================================
 # Exercise 4 (a) -------------------------------------------------------------------------------------------------------
@@ -271,7 +271,7 @@ for idx, y in enumerate(ydata):
     ax.plot(xdata[idx], y, linewidth=2)
 
 fig_ridge.tight_layout()
-fig_ridge.savefig('hw2p4a.svg')
-fig_ridge.savefig('hw2p4a.png')
+fig_ridge.savefig('hw2p4a_output.svg')
+fig_ridge.savefig('hw2p4a_output.png')
 
 plt.show()

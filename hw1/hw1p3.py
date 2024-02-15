@@ -27,7 +27,8 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'$y$')
 fig_scatter.tight_layout()
-fig_scatter.savefig('p3a.svg', format='svg')
+fig_scatter.savefig('p3a_output.svg', format='svg')
+fig_scatter.savefig('p3a_output.png', format='png')
 
 # Exercise 3 (c) -------------------------------------------------------------------------------------------------------
 design_matrix = l_poly.T
@@ -44,7 +45,8 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'$y$')
 fig_lstsq.tight_layout()
-fig_lstsq.savefig('p3c.svg', format='svg')
+fig_lstsq.savefig('p3c_output.svg', format='svg')
+fig_lstsq.savefig('p3c_output.png', format='png')
 
 # Exercise 3 (d) -------------------------------------------------------------------------------------------------------
 output_outlier = output.copy()
@@ -61,7 +63,8 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'$y$')
 fig_lstsq_outlier.tight_layout()
-fig_lstsq_outlier.savefig('p3d.svg', format='svg')
+fig_lstsq_outlier.savefig('p3d_output.svg', format='svg')
+fig_lstsq_outlier.savefig('p3d_output.png', format='png')
 
 # Exercise 3 (f) -------------------------------------------------------------------------------------------------------
 c_linprog = np.vstack((np.zeros((n_beta, 1)), np.ones((n_samples, 1))))
@@ -89,6 +92,7 @@ ax.grid()
 ax.set_xlabel(r'$x$')
 ax.set_ylabel(r'$y$')
 fig_linprog.tight_layout()
-fig_linprog.savefig('p3f.svg', format='svg')
+fig_linprog.savefig('p3f_output.svg', format='svg')
+fig_linprog.savefig('p3f_output.png', format='png')
 
 plt.show()

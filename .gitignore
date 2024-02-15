@@ -2,8 +2,9 @@
 *~
 *.egg-info/
 
-*.svg
-*.eps
-*.png
-*.jpg
+*output.svg
+*output.eps
+*output.png
+*output.jpg
+*output.txt
 

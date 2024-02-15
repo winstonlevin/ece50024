@@ -38,7 +38,8 @@ ax.set_xlabel(r'$x_1$')
 ax.set_ylabel(r'$x_2$')
 fig_contour.colorbar(cont)
 fig_contour.tight_layout()
-fig_contour.savefig('p2a.svg', format='svg')
+fig_contour.savefig('p2a_output.svg', format='svg')
+fig_contour.savefig('p2a_output.png', format='png')
 
 # Exercise 2 (b) -------------------------------------------------------------------------------------------------------
 lam = sym.Matrix([[3, 0], [0, 1]])
@@ -63,7 +64,8 @@ ax.set_xlabel(r'$x_1$')
 ax.set_ylabel(r'$x_2$')
 fig_scatter_x.colorbar(cont)
 fig_scatter_x.tight_layout()
-fig_scatter_x.savefig('p2c1.svg', format='svg')
+fig_scatter_x.savefig('p2c1_output.svg', format='svg')
+fig_scatter_x.savefig('p2c1_output.png', format='png')
 
 eig, eig_vec = np.linalg.eig(cov)
 a = eig_vec @ np.diag(eig)**0.5 @ eig_vec.T
@@ -80,6 +82,7 @@ ax.set_xlabel(r'$x_1$')
 ax.set_ylabel(r'$x_2$')
 fig_scatter_y.colorbar(cont)
 fig_scatter_y.tight_layout()
-fig_scatter_y.savefig('p2c2.svg', format='svg')
+fig_scatter_y.savefig('p2c2_output.svg', format='svg')
+fig_scatter_y.savefig('p2c2_output.png', format='png')
 
 plt.show()
