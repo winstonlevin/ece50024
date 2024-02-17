@@ -25,7 +25,7 @@ def make_max_function(_mu, _cov, _prior):
     _log_prior = np.log(_prior)
 
     def _max_function(_x):
-        _max_val = 0.5 * ((_x - _mu).T @ _inverse_cov @ (_x - _mu) - _log_det_cov) + _log_prior
+        _max_val = _log_prior - 0.5 * ((_x - _mu).T @ _inverse_cov @ (_x - _mu) + _log_det_cov)
         return _max_val
     return _max_function
 
@@ -49,7 +49,7 @@ for i in range(m - 8):
 
 fig_classification = plt.figure()
 ax_classification = fig_classification.add_subplot(111)
-ax_classification.imshow(classification_image, cmap='Greys', interpolation='nearest', vmin=0., vmax=1.)
+ax_classification.imshow(1. - classification_image, cmap='Greys', interpolation='nearest', vmin=0., vmax=1.)
 ax_classification.set_xticks([])
 ax_classification.set_yticks([])
 ax_classification.set_title('Predicted Classification')
