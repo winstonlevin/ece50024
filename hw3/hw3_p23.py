@@ -35,6 +35,7 @@ def make_max_function(_mu, _cov, _prior):
 max_fun_grass = make_max_function(mean_grass, cov_grass, prior_likelihood_grass)
 max_fun_cat = make_max_function(mean_cat, cov_cat, prior_likelihood_cat)
 
+# cat_pixel_data = plt.imread('quiz_img_gray.jpg') / 255
 cat_pixel_data = plt.imread('cat_grass.jpg') / 255
 m, n = cat_pixel_data.shape
 classification_mask = np.zeros(shape=(m - 8, n - 8), dtype=float)
