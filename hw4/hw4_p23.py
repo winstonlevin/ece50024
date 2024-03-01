@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 import cvxpy as cp
 from matplotlib import pyplot as plt
 
@@ -105,6 +106,43 @@ fig_bayes.savefig('hw4_p2d_output.png', format='png')
 
 # EXERCISE 3 ========================================================================================================= #
 # EXERCISE 3 (a) ----------------------------------------------------------------------------------------------------- #
+h_kernal = 1.
+
+kernal_matrix = np.empty((n_data, n_data))
+for idx in range(n_data):
+    for jdx in range(n_data):
+        kernal_matrix[idx, jdx] = np.exp(-np.sum((design_matrix[idx, :] - design_matrix[jdx, :])**2))
+
+print('K[47:52,47:52:')
+print(kernal_matrix[47:52, 47:52])
+
+# EXERCISE 3 (b) ----------------------------------------------------------------------------------------------------- #
+kernal_sqrt = sp.linalg.sqrtm(kernal_matrix)
+kernal_1 = kernal_matrix[n_0:, :]
+alpha_var_cvx = cp.Variable((n_data, 1), 'alpha')
+
+reg_alpha = cp.sum((kernal_sqrt @ alpha_var_cvx)**2)
+loss_kernal = -(
+                cp.sum(kernal_1 @ alpha_var_cvx)
+                - cp.log_sum_exp(cp.vstack((np.zeros((1, 1)), kernal_matrix @ alpha_var_cvx)), axis=0)
+              )
+
+prob_alpha = cp.Problem(cp.Minimize(loss_kernal/n_data + lam_ridge*reg_alpha))
+prob_alpha.solve(solver=cp.CLARABEL)
+
+alpha = alpha_var_cvx.value
+
+print('First two values of alpha:')
+print(alpha[0:2])
+
+
+def kernal_predictor(_input_tensor, _design_matrix, _alpha):
+    _ndim = len(_input_tensor.shape)
+    _x_data = np.expand_dims(_design_matrix, axis=tuple(np.append(np.arange(0, _ndim - 2, 1, dtype=int), -1)))
+    _input_tensor = np.expand_dims(_input_tensor, axis=-3)
+    _kern = np.exp(-np.sum((_input_tensor - _x_data)**2, axis=-2))
+    _prediction = (_alpha.T @ _kern).squeez()
+    return _prediction
 
 
 plt.show()
