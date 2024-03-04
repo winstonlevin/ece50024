@@ -34,7 +34,7 @@ prob.solve(solver=cp.CLARABEL)
 theta = theta_var_cvx.value
 
 # EXERCISE 2 (c) ----------------------------------------------------------------------------------------------------- #
-n_vals_contour = 100
+n_vals_contour = 500
 x1_vals = np.linspace(-5., 10., n_vals_contour)
 x2_vals = x1_vals.copy()
 x1_grid, x2_grid = np.meshgrid(x1_vals, x2_vals)
@@ -107,11 +107,12 @@ fig_bayes.savefig('hw4_p2d_output.png', format='png')
 # EXERCISE 3 ========================================================================================================= #
 # EXERCISE 3 (a) ----------------------------------------------------------------------------------------------------- #
 h_kernal = 1.
+design_matrix_2 = design_matrix[:, :2]
 
 kernal_matrix = np.empty((n_data, n_data))
 for idx in range(n_data):
     for jdx in range(n_data):
-        kernal_matrix[idx, jdx] = np.exp(-np.sum((design_matrix[idx, :] - design_matrix[jdx, :])**2))
+        kernal_matrix[idx, jdx] = np.exp(-np.sum((design_matrix_2[idx, :] - design_matrix_2[jdx, :])**2))
 
 print('K[47:52,47:52:')
 print(kernal_matrix[47:52, 47:52])
@@ -124,7 +125,7 @@ alpha_var_cvx = cp.Variable((n_data, 1), 'alpha')
 reg_alpha = cp.sum((kernal_sqrt @ alpha_var_cvx)**2)
 loss_kernal = -(
                 cp.sum(kernal_1 @ alpha_var_cvx)
-                - cp.log_sum_exp(cp.vstack((np.zeros((1, 1)), kernal_matrix @ alpha_var_cvx)), axis=0)
+                - cp.sum(cp.log_sum_exp(cp.hstack([np.zeros((n_data, 1)), kernal_matrix @ alpha_var_cvx]), axis=1))
               )
 
 prob_alpha = cp.Problem(cp.Minimize(loss_kernal/n_data + lam_ridge*reg_alpha))
@@ -162,7 +163,7 @@ ax_kern.contour(
 ax_kern.legend()
 ax_kern.set_title('Kernal Decision Boundary')
 fig_kern.tight_layout()
-fig_kern.savefig('hw4_p2d_output.svg', format='svg')
-fig_kern.savefig('hw4_p2d_output.png', format='png')
+fig_kern.savefig('hw4_p3d_output.svg', format='svg')
+fig_kern.savefig('hw4_p3d_output.png', format='png')
 
 plt.show()
