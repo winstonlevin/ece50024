@@ -116,7 +116,7 @@ for idx in range(n_data):
 print('K[47:52,47:52:')
 print(kernal_matrix[47:52, 47:52])
 
-# EXERCISE 3 (b) ----------------------------------------------------------------------------------------------------- #
+# EXERCISE 3 (c) ----------------------------------------------------------------------------------------------------- #
 kernal_sqrt = sp.linalg.sqrtm(kernal_matrix)
 kernal_1 = kernal_matrix[n_0:, :]
 alpha_var_cvx = cp.Variable((n_data, 1), 'alpha')
@@ -136,13 +136,33 @@ print('First two values of alpha:')
 print(alpha[0:2])
 
 
+# EXERCISE 3 (d) ----------------------------------------------------------------------------------------------------- #
 def kernal_predictor(_input_tensor, _design_matrix, _alpha):
     _ndim = len(_input_tensor.shape)
     _x_data = np.expand_dims(_design_matrix, axis=tuple(np.append(np.arange(0, _ndim - 2, 1, dtype=int), -1)))
     _input_tensor = np.expand_dims(_input_tensor, axis=-3)
     _kern = np.exp(-np.sum((_input_tensor - _x_data)**2, axis=-2))
-    _prediction = (_alpha.T @ _kern).squeez()
+    _prediction = (_alpha.T @ _kern).squeeze()
     return _prediction
 
+
+kern_prediction = kernal_predictor(input_tensor, design_matrix, alpha)
+max_diff_kern = np.max(np.abs(kern_prediction))
+
+fig_kern = plt.figure()
+ax_kern = fig_kern.add_subplot(111)
+ax_kern.grid()
+ax_kern.set_xlabel(r'$x_1$')
+ax_kern.set_ylabel(r'$x_2$')
+ax_kern.scatter(class0_data[:, 0], class0_data[:, 1], label='Class 0')
+ax_kern.scatter(class1_data[:, 0], class1_data[:, 1], label='Class 1')
+ax_kern.contour(
+    x1_vals, x2_vals, kern_prediction, levels=(-max_diff_kern - 1., 0.5, max_diff_kern + 1), cmap='Greys', linewidths=3
+)
+ax_kern.legend()
+ax_kern.set_title('Kernal Decision Boundary')
+fig_kern.tight_layout()
+fig_kern.savefig('hw4_p2d_output.svg', format='svg')
+fig_kern.savefig('hw4_p2d_output.png', format='png')
 
 plt.show()
