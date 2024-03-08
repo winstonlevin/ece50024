@@ -1,10 +1,17 @@
-.idea/
+# VIM
 *~
+
+# PyCharm
+.idea/
 *.egg-info/
 
+# Reproducible output files
 *output.svg
 *output.eps
 *output.png
 *output.jpg
 *output.txt
+
+# Temporary Files
+tmp/
 
