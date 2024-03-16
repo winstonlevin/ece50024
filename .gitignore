@@ -4,6 +4,7 @@
 # PyCharm
 .idea/
 *.egg-info/
+*__pycache__/
 
 # Reproducible output files
 *output.svg

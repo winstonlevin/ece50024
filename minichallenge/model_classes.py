@@ -3,6 +3,26 @@ from typing import Optional, Callable
 import torch
 from torch import Tensor
 import torch.nn as nn
+from torchvision.datasets import ImageFolder
+
+
+class ImageFolderWithTargets(ImageFolder):
+    def __init__(self, root, targets, transform=None, is_valid_file=None):
+        super(ImageFolderWithTargets, self).__init__(root, transform=transform, is_valid_file=is_valid_file)
+        self.targets = targets
+
+    def __getitem__(self, index):
+        path, _ = self.samples[index]
+        sample = self.loader(path)
+        if self.transform is not None:
+            sample = self.transform(sample)
+        target = self.targets[index]
+
+        return sample, target
+        # path, _ = self.samples[index]
+        # sample = self.loader(path)
+        # target = self.targets[index]
+        # return sample, target
 
 
 class ImageClassifier(nn.Module):
