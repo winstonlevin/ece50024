@@ -49,10 +49,9 @@ data_validation = np.hstack((
     np.asarray(targets_valid, dtype=str)[validation_idces].reshape((-1, 1)),
     np.asarray(images_valid, dtype=str)[validation_idces].reshape((-1, 1))
                         ))
-np.savetxt('data_validation.csv', data_validation, delimiter=',')
+np.savetxt('data_validation.csv', data_validation, delimiter=',', fmt='%s')
 data_train = np.hstack((
     np.asarray(targets_valid, dtype=str)[train_idces].reshape((-1, 1)),
     np.asarray(images_valid, dtype=str)[train_idces].reshape((-1, 1))
                         ))
-np.savetxt('data_train.csv', data_train, delimiter=',')
-
+np.savetxt('data_train.csv', data_train, delimiter=',', fmt='%s')

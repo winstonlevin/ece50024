@@ -7,23 +7,31 @@ from torchvision.io import read_image
 
 from model_classes import ImageDataset
 
-# Get Data TODO - FIX THIS TO LOAD DATA SAVED FROM "create_data_sets" after that is implemented right
+# Transformation of images ------------------------------------------------------------------------------------------- #
+transform = transforms.Compose((
+    transforms.Grayscale(1),
+    transforms.Resize((255, 255)),
+))
+
+# Load training and validation data ---------------------------------------------------------------------------------- #
 root = '../tmp/train/train/'
 categories = list(np.loadtxt('category.csv', delimiter=',', skiprows=1, usecols=1, dtype=str))
 n_categories = len(categories)
-images_train = np.loadtxt('data_validation.csv', delimiter=',', usecols=0, dtype=str)
+targets_train = np.loadtxt('data_train.csv', delimiter=',', usecols=0, dtype=int)
+images_train = np.loadtxt('data_train.csv', delimiter=',', usecols=1, dtype=str)
+targets_validation = np.loadtxt('data_validation.csv', delimiter=',', usecols=0, dtype=int)
+images_validation = np.loadtxt('data_validation.csv', delimiter=',', usecols=1, dtype=str)
 
-labels_str = list(np.loadtxt('train.csv', delimiter=',', skiprows=1, usecols=2, dtype=str))
-targets = [categories.index(lab) for lab in labels_str]
-
-# dataset = datasets.ImageFolder('../tmp/train', transform=transform)
-dataset_raw = ImageDataset(
-    root=root, images=list(image_names_arr), targets=targets, transform=transform
+dataset_train = ImageDataset(
+    root=root, images=list(images_train), targets=list(targets_validation), transform=transform
+)
+dataset_validation = ImageDataset(
+    root=root, images=list(images_validation), targets=list(targets_validation), transform=transform
 )
 
-# Test batch
+# Test batch (TODO - REMOVE) ----------------------------------------------------------------------------------------- #
 from matplotlib import pyplot as plt
-dataloader = torch.utils.data.DataLoader(dataset_raw, batch_size=100, shuffle=False)
+dataloader = torch.utils.data.DataLoader(dataset_train, batch_size=100, shuffle=False)
 tmp = next(iter(dataloader))
 pixel_data = np.asarray(tmp[0][2, :, :])
 fig_grey_cat_trial = plt.figure()
