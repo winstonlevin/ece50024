@@ -4,23 +4,24 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 
-from torchvision.io import read_image
+from torchvision.io import read_image, ImageReadMode
 from torch.utils.data import Dataset
 
 
 class ImageDataset(Dataset):
-    def __init__(self, root, images, targets, transform=None):
+    def __init__(self, root, images, targets, transform=None, image_read_mode=ImageReadMode.UNCHANGED):
         self.root = root
         self.targets = targets
         self.images = images
         self.transform = transform
+        self.image_read_mode = image_read_mode
 
     def __len__(self):
         return len(self.targets)
 
     def __getitem__(self, index):
         path = self.root + self.images[index]
-        sample = read_image(path)
+        sample = read_image(path, self.image_read_mode) / 255  # Normalize image 0 = black, 1 = white
         if self.transform is not None:
             sample = self.transform(sample)
         target = self.targets[index]
@@ -83,7 +84,7 @@ def train(model, train_loader, optimizer, criterion, device, verbose=True):
     model.train()
     running_loss = 0.0
     n_batches = len(train_loader)
-    idx_report = max(1, int(n_batches / 5))
+    idx_report = max(1, int(n_batches / 10))
     if verbose:
         print(f'\n')
 
@@ -101,9 +102,9 @@ def train(model, train_loader, optimizer, criterion, device, verbose=True):
     return running_loss / n_batches
 
 
-def test(model, test_loader, device):
+def validate(model, test_loader, device):
     """
-    Function to evaluate the model using the testing dataset
+    Function to evaluate the model using the validation dataset
     """
     model.eval()
     correct = 0
