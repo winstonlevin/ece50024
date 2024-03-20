@@ -48,21 +48,30 @@ class ImageClassifier(nn.Module):
     (3) OUTPUT LAYER
         Linear Transformation from feature vector to 10 possible classifications.
     """
-    def __init__(self, n_features: int = 64):
+    def __init__(self, n_features: int = 64, kernal_size: int = 3, n_outputs: int = 100):
 
         super(ImageClassifier, self).__init__()
         self.n_features = n_features
-
+        self.kernal_size = kernal_size
+        self.n_outputs = n_outputs
+        self.stride = self.kernal_size // 2
+        self.padding = self.stride
         self.input_layer = nn.Sequential(
-            nn.Conv2d(1, n_features, kernel_size=3, padding=1),  # in_channel (1 for grayscale), out_channels
+            nn.Conv2d(
+                1, n_features, kernel_size=(kernal_size, kernal_size),
+                padding=self.padding, stride=(self.stride, self.stride)
+            ),  # in_channel (1 for grayscale), out_channels
             nn.ReLU(inplace=True)  # inplace=True argument modifies the input tensor directly, saving memory.
         )
         self.hidden_layer = nn.Sequential(
-            nn.Conv2d(n_features, n_features, kernel_size=3, padding=1),
+            nn.Conv2d(
+                n_features, n_features, kernel_size=(kernal_size, kernal_size),
+                padding=self.padding, stride=(self.stride, self.stride)
+            ),
             nn.ReLU(inplace=True)
         )
         self.pool_layer = nn.AdaptiveAvgPool2d((1, 1))
-        self.output_layer = nn.Linear(n_features, 10)
+        self.output_layer = nn.Linear(n_features, n_outputs)
 
         # Storage of training information
         self.train_losses = []
@@ -91,7 +100,7 @@ def train(model, train_loader, optimizer, criterion, device, verbose=True):
     for idx, (inputs, labels) in enumerate(train_loader):
         if verbose and idx % idx_report == 0:
             print(f'Batch #{idx+1}/{n_batches} (Ave. Loss = {running_loss / (idx+1):.4f})...')
-        inputs, labels = inputs.to(device), labels.to(device)
+        inputs, labels = inputs.to(device), labels.to(device).long()
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, labels)

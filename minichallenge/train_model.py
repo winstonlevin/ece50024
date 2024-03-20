@@ -15,10 +15,13 @@ from model_classes import ImageDataset, ImageClassifier, train, validate
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 n_features = 64
 n_epochs = 10
+batch_size = 25  # 100 labels -> 4 batches/label cycle
+n_pixels = 100
+kernal_size = 3
 
 image_read_mode = ImageReadMode.GRAY
 transform = transforms.Compose((
-    transforms.Resize((255, 255)),
+    transforms.Resize((n_pixels, n_pixels)),
 ))
 
 # Load training and validation data ---------------------------------------------------------------------------------- #
@@ -40,15 +43,15 @@ dataset_validation = ImageDataset(
 )
 
 # Train NN ----------------------------------------------------------------------------------------------------------- #
-train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=100, shuffle=False)
-validation_loader = torch.utils.data.DataLoader(dataset_validation, batch_size=100, shuffle=False)
+train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=False)
+validation_loader = torch.utils.data.DataLoader(dataset_validation, batch_size=batch_size, shuffle=False)
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 criterion = nn.CrossEntropyLoss()
 
 # Initialize the model, loss function, and optimizer
-model = ImageClassifier(n_features=n_features).to(device)
+model = ImageClassifier(n_features=n_features, n_outputs=n_categories, kernal_size=3).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # Training loop
