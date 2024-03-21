@@ -20,8 +20,8 @@ kernel_size = 3
 
 epochs_max = 10
 curriculum_n_categories = [2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-curriculum_accuracies = len(curriculum_n_categories) * [0.8]
-curriculum_accuracies[-1] = 0.99
+curriculum_accuracies = len(curriculum_n_categories) * [80]
+curriculum_accuracies[-1] = 99
 
 
 image_read_mode = ImageReadMode.GRAY
@@ -30,7 +30,7 @@ transform = transforms.Compose((
 ))
 
 # Load training and validation data ---------------------------------------------------------------------------------- #
-root = '../tmp/train/train/'
+root = '../tmp/minichallenge_data/train/'
 categories = list(np.loadtxt('category.csv', delimiter=',', skiprows=1, usecols=1, dtype=str))
 n_categories = len(categories)
 targets_train = np.loadtxt('data_train.csv', delimiter=',', usecols=0, dtype=int)
@@ -75,6 +75,8 @@ for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curricu
         test_accuracy = validate(model, validation_loader, device)
         test_accuracies.append(test_accuracy)
         print(f"Epoch [{epoch + 1}/{epochs_max}], Train Loss: {train_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
+        if test_accuracy > acc_min:
+            break
     model.train_losses.append(train_losses)
     model.test_accuracies.append(test_accuracies)
 

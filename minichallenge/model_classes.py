@@ -22,11 +22,22 @@ class ImageDataset(Dataset):
     def __getitem__(self, index):
         path = self.root + self.images[index]
         sample = read_image(path, self.image_read_mode) / 255  # Normalize image 0 = black, 1 = white
+        # Pad image from [1xhxw] to square [1xsxs]
+        if sample.shape[1] > sample.shape[2]:
+            dim = sample.shape[1]
+            pad_offset = (sample.shape[1] - sample.shape[2]) // 2
+            sample_padded = torch.zeros((1, dim, dim))
+            sample_padded[:, :, pad_offset:pad_offset+sample.shape[2]] = sample
+        else:
+            dim = sample.shape[2]
+            pad_offset = (sample.shape[2] - sample.shape[1]) // 2
+            sample_padded = torch.zeros((1, dim, dim))
+            sample_padded[:, pad_offset:pad_offset+sample.shape[1], :] = sample
         if self.transform is not None:
-            sample = self.transform(sample)
+            sample_padded = self.transform(sample_padded)
         target = self.targets[index]
 
-        return sample, target
+        return sample_padded, target
 
 
 class ImageClassifier(nn.Module):
