@@ -4,8 +4,10 @@ import cvxpy as cp
 from matplotlib import pyplot as plt
 
 # Load data
-class0_data = np.loadtxt('homework4_class0.txt')
-class1_data = np.loadtxt('homework4_class1.txt')
+class0_data = np.loadtxt('quiz4_class0.txt')
+class1_data = np.loadtxt('quiz4_class1.txt')
+# class0_data = np.loadtxt('homework4_class0.txt')
+# class1_data = np.loadtxt('homework4_class1.txt')
 n_0 = class0_data.shape[0]
 n_1 = class1_data.shape[0]
 
@@ -16,7 +18,8 @@ design_matrix_1 = design_matrix[n_0:, :]
 
 # EXERCISE 2 ========================================================================================================= #
 # EXERCISE 2 (b) ----------------------------------------------------------------------------------------------------- #
-lam_ridge = 1e-4  # Constant to prevent theta -> infty
+lam_ridge = 1e-2  # Constant to prevent theta -> infty
+# lam_ridge = 1e-4  # Constant to prevent theta -> infty
 
 # Parameter Vector
 theta_var_cvx = cp.Variable((3, 1), 'theta')
@@ -122,7 +125,8 @@ kernal_sqrt = sp.linalg.sqrtm(kernal_matrix)
 kernal_1 = kernal_matrix[n_0:, :]
 alpha_var_cvx = cp.Variable((n_data, 1), 'alpha')
 
-reg_alpha = cp.sum((kernal_sqrt @ alpha_var_cvx)**2)
+# reg_alpha = cp.sum((kernal_sqrt @ alpha_var_cvx)**2)
+reg_alpha = cp.quad_form(alpha_var_cvx, cp.psd_wrap(kernal_matrix))
 loss_kernal = -(
                 cp.sum(kernal_1 @ alpha_var_cvx)
                 - cp.sum(cp.log_sum_exp(cp.hstack([np.zeros((n_data, 1)), kernal_matrix @ alpha_var_cvx]), axis=1))
