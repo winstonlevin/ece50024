@@ -14,10 +14,15 @@ from model_classes import ImageDataset, ImageClassifier, train, validate
 
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 n_features = 64
-n_epochs = 10
 batch_size = 25  # 100 labels -> 4 batches/label cycle
 n_pixels = 100
-kernal_size = 3
+kernel_size = 3
+
+epochs_max = 10
+curriculum_n_categories = [2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+curriculum_accuracies = len(curriculum_n_categories) * [0.8]
+curriculum_accuracies[-1] = 0.99
+
 
 image_read_mode = ImageReadMode.GRAY
 transform = transforms.Compose((
@@ -33,34 +38,45 @@ images_train = np.loadtxt('data_train.csv', delimiter=',', usecols=1, dtype=str)
 targets_validation = np.loadtxt('data_validation.csv', delimiter=',', usecols=0, dtype=int)
 images_validation = np.loadtxt('data_validation.csv', delimiter=',', usecols=1, dtype=str)
 
-dataset_train = ImageDataset(
-    root=root, images=list(images_train), targets=list(targets_train),
-    transform=transform, image_read_mode=image_read_mode
-)
-dataset_validation = ImageDataset(
-    root=root, images=list(images_validation), targets=list(targets_validation),
-    transform=transform, image_read_mode=image_read_mode
-)
-
 # Train NN ----------------------------------------------------------------------------------------------------------- #
-train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=False)
-validation_loader = torch.utils.data.DataLoader(dataset_validation, batch_size=batch_size, shuffle=False)
-
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 criterion = nn.CrossEntropyLoss()
 
 # Initialize the model, loss function, and optimizer
-model = ImageClassifier(n_features=n_features, n_outputs=n_categories, kernal_size=3).to(device)
+model = ImageClassifier(n_features=n_features, n_outputs=n_categories, kernel_size=3).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # Training loop
-for epoch in range(n_epochs):
-    train_loss = train(model, train_loader, optimizer, criterion, device, verbose=True)
-    model.train_losses.append(train_loss)
-    test_accuracy = validate(model, validation_loader, device)
-    model.test_accuracies.append(test_accuracy)
-    print(f"Epoch [{epoch + 1}/{n_epochs}], Train Loss: {train_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
+for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curriculum_accuracies)):
+    print(f"Curriculum Stage #{curr_idx} [{n_cat} Categories, {acc_min:.0%} Accuracy]")
+    # Progressively add more categories to identification to help model train
+    idces_curriculum_train = targets_train < n_cat
+    idces_curriculum_validation = targets_validation < n_cat
+
+    dataset_train = ImageDataset(
+        root=root, images=list(images_train[idces_curriculum_train]),
+        targets=list(targets_train[idces_curriculum_train]),
+        transform=transform, image_read_mode=image_read_mode
+    )
+    dataset_validation = ImageDataset(
+        root=root, images=list(images_validation[idces_curriculum_validation]),
+        targets=list(targets_validation[idces_curriculum_validation]),
+        transform=transform, image_read_mode=image_read_mode
+    )
+
+    train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=False)
+    validation_loader = torch.utils.data.DataLoader(dataset_validation, batch_size=batch_size, shuffle=False)
+
+    train_losses, test_accuracies = [], []
+    for epoch in range(epochs_max):
+        train_loss = train(model, train_loader, optimizer, criterion, device, verbose=True)
+        train_losses.append(train_loss)
+        test_accuracy = validate(model, validation_loader, device)
+        test_accuracies.append(test_accuracy)
+        print(f"Epoch [{epoch + 1}/{epochs_max}], Train Loss: {train_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
+    model.train_losses.append(train_losses)
+    model.test_accuracies.append(test_accuracies)
 
 # Save Model
 current_time = time.gmtime()

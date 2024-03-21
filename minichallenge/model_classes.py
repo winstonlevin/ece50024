@@ -48,24 +48,24 @@ class ImageClassifier(nn.Module):
     (3) OUTPUT LAYER
         Linear Transformation from feature vector to 10 possible classifications.
     """
-    def __init__(self, n_features: int = 64, kernal_size: int = 3, n_outputs: int = 100):
+    def __init__(self, n_features: int = 64, kernel_size: int = 3, n_outputs: int = 100):
 
         super(ImageClassifier, self).__init__()
         self.n_features = n_features
-        self.kernal_size = kernal_size
+        self.kernal_size = kernel_size
         self.n_outputs = n_outputs
         self.stride = self.kernal_size // 2
         self.padding = self.stride
         self.input_layer = nn.Sequential(
             nn.Conv2d(
-                1, n_features, kernel_size=(kernal_size, kernal_size),
+                1, n_features, kernel_size=(kernel_size, kernel_size),
                 padding=self.padding, stride=(self.stride, self.stride)
             ),  # in_channel (1 for grayscale), out_channels
             nn.ReLU(inplace=True)  # inplace=True argument modifies the input tensor directly, saving memory.
         )
         self.hidden_layer = nn.Sequential(
             nn.Conv2d(
-                n_features, n_features, kernel_size=(kernal_size, kernal_size),
+                n_features, n_features, kernel_size=(kernel_size, kernel_size),
                 padding=self.padding, stride=(self.stride, self.stride)
             ),
             nn.ReLU(inplace=True)
