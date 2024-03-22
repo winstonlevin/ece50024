@@ -1,12 +1,12 @@
 import random
 
 import numpy as np
-from torchvision.io import read_image
+import cv2
 
-N_IMAGES_VALIDATION = 100  # Number of images from each category to act as validation
+FRAC_VALIDATION = 0.1  # Fraction of data from each category to act as validation
 
 # Get Data
-root = '../tmp/train/train/'
+root = '../tmp/minichallenge_data/train/'
 categories = list(np.loadtxt('category.csv', delimiter=',', skiprows=1, usecols=1, dtype=str))
 n_categories = len(categories)
 image_names_arr = np.loadtxt('train.csv', delimiter=',', skiprows=1, usecols=1, dtype=str)
@@ -16,42 +16,42 @@ targets = [categories.index(lab) for lab in labels_str]
 images_valid = []
 targets_valid = []
 
+face_classifier = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
 for target, image in zip(targets, image_names_arr):
     try:
-        read_image(root + image)
+        img = cv2.imread(root + image, cv2.IMREAD_GRAYSCALE)
+        faces = face_classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=2)
+        if len(faces) != 1:
+            raise RuntimeError('Classifier did not find exactly 1 face!')
+
         images_valid.append(image)
         targets_valid.append(target)
     except RuntimeError as _:
         continue
 
+
+# Separate images into training and validation set
+images_valid_arr = np.asarray(images_valid, dtype=str)
+targets_valid_arr_str = np.asarray(targets_valid, dtype=str)
 targets_valid_arr = np.asarray(targets_valid, dtype=int)
-n_images_min = np.Inf
-for idx in range(n_categories):
-    n_images_min = min(n_images_min, len(np.nonzero(targets_valid_arr == idx)[0]))
 
-# Sort images into sets of 100 by category
-arr_idces = np.empty((n_categories, n_images_min), dtype=int)
-idces_sorted = []
-for idx in range(n_categories):
-    arr_idces[idx, :] = np.nonzero(targets_valid_arr == idx)[0][:n_images_min]
+idces_train = []
+idces_validation = []
 
-# Shuffle images
-image_order = list(np.arange(0, len(categories), 1, dtype=int))
-for idx in range(n_images_min):
-    random.shuffle(image_order)
-    arr_idces[:, idx] = arr_idces[image_order, idx]
-
-# One-dimensionalize
-validation_idces = arr_idces[:, :N_IMAGES_VALIDATION].ravel(order='F')
-train_idces = arr_idces[:, N_IMAGES_VALIDATION:].ravel(order='F')
+for category in range(n_categories):
+    labels_cat = np.nonzero(targets_valid_arr == category)[0]
+    idx_validation = int(len(labels_cat) * FRAC_VALIDATION)
+    idces_train.extend(labels_cat[idx_validation:])
+    idces_validation.extend(labels_cat[:idx_validation])
 
 data_validation = np.hstack((
-    np.asarray(targets_valid, dtype=str)[validation_idces].reshape((-1, 1)),
-    np.asarray(images_valid, dtype=str)[validation_idces].reshape((-1, 1))
+    targets_valid_arr_str[idces_validation].reshape((-1, 1)),
+    images_valid_arr[idces_validation].reshape((-1, 1))
                         ))
 np.savetxt('data_validation.csv', data_validation, delimiter=',', fmt='%s')
 data_train = np.hstack((
-    np.asarray(targets_valid, dtype=str)[train_idces].reshape((-1, 1)),
-    np.asarray(images_valid, dtype=str)[train_idces].reshape((-1, 1))
+    targets_valid_arr_str[idces_train].reshape((-1, 1)),
+    images_valid_arr[idces_train].reshape((-1, 1))
                         ))
 np.savetxt('data_train.csv', data_train, delimiter=',', fmt='%s')

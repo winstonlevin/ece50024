@@ -39,7 +39,7 @@ class ImageDataset(Dataset):
 
         path = self.root + self.images[index]
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        faces = self.face_classifier.detectMultiScale(img, scaleFactor=1.05, minNeighbors=2)
+        faces = self.face_classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=2)
         if len(faces) == 0:
             # No faces found, default to using whole image
             x, y = 0, 0
@@ -80,7 +80,7 @@ class ImageClassifier(nn.Module):
         (1a.) 2D convolution of each pixel to a feature vector
         (1b.) ReLU activation of features
 
-    (2) HIDDEN LAYER
+    (2) HIDDEN LAYER(S)
         (2a.) 2D channel-wise convolution of feature vector
         (2b.) ReLU activation of features
 
@@ -128,7 +128,7 @@ class ImageClassifier(nn.Module):
         return _state
 
 
-def train(model, train_loader, optimizer, criterion, device, verbose=True):
+def train(model, train_loader, optimizer, criterion, device, verbose=True, include_no_image=False):
     """
     Function to train the model, using the optimizer to tune the parameters.
     """
@@ -146,8 +146,11 @@ def train(model, train_loader, optimizer, criterion, device, verbose=True):
         optimizer.zero_grad()
         outputs = model(inputs)
 
-        # Loss must append the "no category" at the end
-        loss = criterion(torch.cat((outputs, 1 - outputs.max(dim=1, keepdim=True)[0]), dim=1), labels)
+        if include_no_image:
+            # Loss must append the "no image" category at the end
+            loss = criterion(torch.cat((outputs, 1 - outputs.max(dim=1, keepdim=True)[0]), dim=1), labels)
+        else:
+            loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
         running_loss += loss.item() * inputs.size(0)

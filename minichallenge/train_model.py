@@ -14,15 +14,15 @@ from model_classes import ImageDataset, ImageClassifier, train, validate
 
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 n_features = 64
-batch_size = 32  # 100 labels -> 4 batches/label cycle
-n_pixels = 64
+batch_size = 32
+n_pixels = 128
 kernel_size = 3
 
 epochs_max = 10
 curriculum_n_categories = [2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 curriculum_accuracies = len(curriculum_n_categories) * [80]
 curriculum_accuracies[-1] = 99
-
+include_no_image = True
 
 image_read_mode = ImageReadMode.GRAY
 transform = transforms.Compose((
@@ -55,7 +55,7 @@ for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curricu
     idces_curriculum_validation = targets_validation < n_cat
 
     # Add 1% no-category inputs
-    n_no_category = 1 + idces_curriculum_train.sum() // 100
+    n_no_category = include_no_image * (1 + idces_curriculum_train.sum() // 100)
 
     images_train_curr = list(images_train[idces_curriculum_train])
     images_train_curr.extend(n_no_category * [ImageDataset.NO_IMAGE])
@@ -77,7 +77,9 @@ for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curricu
 
     train_losses, test_accuracies = [], []
     for epoch in range(epochs_max):
-        train_loss = train(model, train_loader, optimizer, criterion, device, verbose=True)
+        train_loss = train(
+            model, train_loader, optimizer, criterion, device, verbose=True, include_no_image=include_no_image
+        )
         train_losses.append(train_loss)
         test_accuracy = validate(model, validation_loader, device)
         test_accuracies.append(test_accuracy)
