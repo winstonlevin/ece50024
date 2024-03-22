@@ -3,7 +3,7 @@ from typing import Optional, Callable
 import torch
 from torch import Tensor
 import torch.nn as nn
-
+import cv2
 from torchvision.io import read_image, ImageReadMode
 from torch.utils.data import Dataset
 
@@ -15,14 +15,20 @@ class ImageDataset(Dataset):
         self.images = images
         self.transform = transform
         self.image_read_mode = image_read_mode
+        self.face_classifier = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
     def __len__(self):
         return len(self.targets)
 
     def __getitem__(self, index):
         path = self.root + self.images[index]
-        sample = read_image(path, self.image_read_mode) / 255  # Normalize image 0 = black, 1 = white
-        # Pad image from [1xhxw] to square [1xsxs]
+        # sample = read_image(path, self.image_read_mode) / 255  # Normalize image 0 = black, 1 = white
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        faces = self.face_classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=4)
+        x, y, w, h = faces[0]
+        sample = torch.as_tensor(img[x:x+w, y:y+h]).reshape((1, w, h))
+        # TODO - make sample shape 1xwxh
+        # Pad image from [1xwxh] to square [1xsxs]
         if sample.shape[1] > sample.shape[2]:
             dim = sample.shape[1]
             pad_offset = (sample.shape[1] - sample.shape[2]) // 2
