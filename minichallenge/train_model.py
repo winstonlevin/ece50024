@@ -14,8 +14,8 @@ from model_classes import ImageDataset, ImageClassifier, train, validate
 
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 n_features = 64
-batch_size = 25  # 100 labels -> 4 batches/label cycle
-n_pixels = 100
+batch_size = 32  # 100 labels -> 4 batches/label cycle
+n_pixels = 64
 kernel_size = 3
 
 epochs_max = 10
@@ -26,7 +26,7 @@ curriculum_accuracies[-1] = 99
 
 image_read_mode = ImageReadMode.GRAY
 transform = transforms.Compose((
-    transforms.Resize((n_pixels, n_pixels)),
+    transforms.Resize((n_pixels, n_pixels)),  # Ensure all images are same size
 ))
 
 # Load training and validation data ---------------------------------------------------------------------------------- #
@@ -49,23 +49,30 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 # Training loop
 for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curriculum_accuracies)):
-    print(f"Curriculum Stage #{curr_idx} [{n_cat} Categories, {acc_min:.0%} Accuracy]")
+    print(f"Curriculum Stage #{curr_idx} [{n_cat} Categories, {acc_min/100:.0%} Accuracy]")
     # Progressively add more categories to identification to help model train
     idces_curriculum_train = targets_train < n_cat
     idces_curriculum_validation = targets_validation < n_cat
 
+    # Add 1% no-category inputs
+    n_no_category = 1 + idces_curriculum_train.sum() // 100
+
+    images_train_curr = list(images_train[idces_curriculum_train])
+    images_train_curr.extend(n_no_category * [ImageDataset.NO_IMAGE])
+    targets_train_curr = list(targets_train[idces_curriculum_train])
+    targets_train_curr.extend(n_no_category * [n_categories + 1])
+
     dataset_train = ImageDataset(
-        root=root, images=list(images_train[idces_curriculum_train]),
-        targets=list(targets_train[idces_curriculum_train]),
+        root=root, images=images_train_curr, targets=targets_train_curr, n_targets=n_categories,
         transform=transform, image_read_mode=image_read_mode
     )
     dataset_validation = ImageDataset(
         root=root, images=list(images_validation[idces_curriculum_validation]),
-        targets=list(targets_validation[idces_curriculum_validation]),
+        targets=list(targets_validation[idces_curriculum_validation]), n_targets=n_categories,
         transform=transform, image_read_mode=image_read_mode
     )
 
-    train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=False)
+    train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
     validation_loader = torch.utils.data.DataLoader(dataset_validation, batch_size=batch_size, shuffle=False)
 
     train_losses, test_accuracies = [], []

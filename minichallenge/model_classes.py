@@ -9,7 +9,9 @@ from torch.utils.data import Dataset
 
 
 class ImageDataset(Dataset):
-    def __init__(self, root, images, targets, transform=None, image_read_mode=ImageReadMode.UNCHANGED):
+    NO_IMAGE = 'no_image'  # image string corresponding to NO image
+
+    def __init__(self, root, images, targets, n_targets=None, transform=None, image_read_mode=ImageReadMode.UNCHANGED):
         self.root = root
         self.targets = targets
         self.images = images
@@ -17,28 +19,51 @@ class ImageDataset(Dataset):
         self.image_read_mode = image_read_mode
         self.face_classifier = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
+        if n_targets is not None:
+            self.n_targets = n_targets
+        else:
+            self.n_targets = 1 + int(torch.as_tensor(targets).max())
+
     def __len__(self):
         return len(self.targets)
 
     def __getitem__(self, index):
+        if self.images[index] == self.NO_IMAGE:
+            # Generate noise and return no image index
+            target = self.n_targets
+            sample_padded = torch.rand((1, 100, 100))
+            if self.transform is not None:
+                sample_padded = self.transform(sample_padded)
+
+            return sample_padded, target
+
         path = self.root + self.images[index]
-        # sample = read_image(path, self.image_read_mode) / 255  # Normalize image 0 = black, 1 = white
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        faces = self.face_classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=4)
-        x, y, w, h = faces[0]
-        sample = torch.as_tensor(img[x:x+w, y:y+h]).reshape((1, w, h))
-        # TODO - make sample shape 1xwxh
-        # Pad image from [1xwxh] to square [1xsxs]
+        faces = self.face_classifier.detectMultiScale(img, scaleFactor=1.05, minNeighbors=2)
+        if len(faces) == 0:
+            # No faces found, default to using whole image
+            x, y = 0, 0
+            h, w = img.shape
+        else:
+            # Face(s) found, run classifier on first face
+            x, y, w, h = faces[0]
+        sample = torch.as_tensor(img[y:y+h, x:x+w]).reshape((1, h, w)) / 255  # Normalize image, 0 = black, 1 = white
+
+        # Pad image from [1xhxw] to square [1xsxs]
         if sample.shape[1] > sample.shape[2]:
             dim = sample.shape[1]
             pad_offset = (sample.shape[1] - sample.shape[2]) // 2
             sample_padded = torch.zeros((1, dim, dim))
             sample_padded[:, :, pad_offset:pad_offset+sample.shape[2]] = sample
-        else:
+        elif sample.shape[1] < sample.shape[2]:
             dim = sample.shape[2]
             pad_offset = (sample.shape[2] - sample.shape[1]) // 2
             sample_padded = torch.zeros((1, dim, dim))
             sample_padded[:, pad_offset:pad_offset+sample.shape[1], :] = sample
+        else:
+            sample_padded = sample
+
+        # Apply transformation
         if self.transform is not None:
             sample_padded = self.transform(sample_padded)
         target = self.targets[index]
@@ -120,7 +145,9 @@ def train(model, train_loader, optimizer, criterion, device, verbose=True):
         inputs, labels = inputs.to(device), labels.to(device).long()
         optimizer.zero_grad()
         outputs = model(inputs)
-        loss = criterion(outputs, labels)
+
+        # Loss must append the "no category" at the end
+        loss = criterion(torch.cat((outputs, 1 - outputs.max(dim=1, keepdim=True)[0]), dim=1), labels)
         loss.backward()
         optimizer.step()
         running_loss += loss.item() * inputs.size(0)
