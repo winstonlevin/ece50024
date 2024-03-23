@@ -15,11 +15,14 @@ from model_classes import ImageDataset, ImageClassifier, train, validate
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 n_features = 64
 batch_size = 32
-n_pixels = 128
+n_pixels = 64
 kernel_size = 3
+pool_size = 2
+n_hidden_layers = 2
+learning_rate = 1e-3
 
 epochs_max = 10
-curriculum_n_categories = [2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+curriculum_n_categories = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 curriculum_accuracies = len(curriculum_n_categories) * [80]
 curriculum_accuracies[-1] = 99
 include_no_image = True
@@ -44,12 +47,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 criterion = nn.CrossEntropyLoss()
 
 # Initialize the model, loss function, and optimizer
-model = ImageClassifier(n_features=n_features, n_outputs=n_categories, kernel_size=3).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+model = ImageClassifier(
+    n_features=n_features, n_outputs=n_categories, kernel_size=3, pool_size=pool_size, n_hidden_layers=n_hidden_layers
+).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Training loop
 for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curriculum_accuracies)):
-    print(f"Curriculum Stage #{curr_idx} [{n_cat} Categories, {acc_min/100:.0%} Accuracy]")
+    print(f"Curriculum Stage #{curr_idx+1} [{n_cat} Categories, {acc_min/100:.0%} Accuracy]")
     # Progressively add more categories to identification to help model train
     idces_curriculum_train = targets_train < n_cat
     idces_curriculum_validation = targets_validation < n_cat

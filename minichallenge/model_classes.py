@@ -1,10 +1,8 @@
-from typing import Optional, Callable
-
+import numpy as np
 import torch
-from torch import Tensor
 import torch.nn as nn
 import cv2
-from torchvision.io import read_image, ImageReadMode
+from torchvision.io import ImageReadMode
 from torch.utils.data import Dataset
 
 
@@ -29,24 +27,24 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, index):
         if self.images[index] == self.NO_IMAGE:
-            # Generate noise and return no image index
-            target = self.n_targets
-            sample_padded = torch.rand((1, 100, 100))
-            if self.transform is not None:
-                sample_padded = self.transform(sample_padded)
+            return self.gen_noise_image()
 
-            return sample_padded, target
-
+        # Load image
         path = self.root + self.images[index]
-        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        faces = self.face_classifier.detectMultiScale(img, scaleFactor=1.1, minNeighbors=2)
+        try:
+            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        except RuntimeError:
+            return self.gen_noise_image()
+
+        # Find faces
+        faces, confidence = self.face_classifier.detectMultiScale2(img, scaleFactor=1.1, minNeighbors=1)
         if len(faces) == 0:
             # No faces found, default to using whole image
             x, y = 0, 0
             h, w = img.shape
         else:
-            # Face(s) found, run classifier on first face
-            x, y, w, h = faces[0]
+            # Face(s) found, run classifier on most confident face
+            x, y, w, h = faces[np.asarray(confidence).argmax()]
         sample = torch.as_tensor(img[y:y+h, x:x+w]).reshape((1, h, w)) / 255  # Normalize image, 0 = black, 1 = white
 
         # Pad image from [1xhxw] to square [1xsxs]
@@ -70,6 +68,15 @@ class ImageDataset(Dataset):
 
         return sample_padded, target
 
+    def gen_noise_image(self):
+        # Generate noise and return no image index
+        target = self.n_targets
+        sample_padded = torch.rand((1, 100, 100))
+        if self.transform is not None:
+            sample_padded = self.transform(sample_padded)
+
+        return sample_padded, target
+
 
 class ImageClassifier(nn.Module):
     """
@@ -90,30 +97,45 @@ class ImageClassifier(nn.Module):
     (3) OUTPUT LAYER
         Linear Transformation from feature vector to 10 possible classifications.
     """
-    def __init__(self, n_features: int = 64, kernel_size: int = 3, n_outputs: int = 100):
+    def __init__(
+            self,
+            n_features: int = 64, kernel_size: int = 3, pool_size: int = 2, n_hidden_layers: int = 1,
+            n_outputs: int = 100
+    ):
 
         super(ImageClassifier, self).__init__()
         self.n_features = n_features
-        self.kernal_size = kernel_size
+        self.kernel_size = kernel_size
+        self.pool_size = pool_size
+        self.n_hidden_layers = n_hidden_layers
         self.n_outputs = n_outputs
-        self.stride = self.kernal_size // 2
+
+        self.stride = self.kernel_size // 2
         self.padding = self.stride
         self.input_layer = nn.Sequential(
             nn.Conv2d(
-                1, n_features, kernel_size=(kernel_size, kernel_size),
+                1, n_features, kernel_size=(self.kernel_size, self.kernel_size),
                 padding=self.padding, stride=(self.stride, self.stride)
             ),  # in_channel (1 for grayscale), out_channels
             nn.ReLU(inplace=True)  # inplace=True argument modifies the input tensor directly, saving memory.
         )
-        self.hidden_layer = nn.Sequential(
-            nn.Conv2d(
-                n_features, n_features, kernel_size=(kernel_size, kernel_size),
-                padding=self.padding, stride=(self.stride, self.stride)
-            ),
-            nn.ReLU(inplace=True)
-        )
+        self.hidden_layer = nn.Sequential()
+        for _ in range(self.n_hidden_layers):
+            self.hidden_layer.append(nn.Sequential(
+                nn.Conv2d(
+                    n_features, n_features, kernel_size=(self.kernel_size, self.kernel_size),
+                    padding=self.padding, stride=(self.stride, self.stride)
+                ),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size))
+            ))
         self.pool_layer = nn.AdaptiveAvgPool2d((1, 1))
         self.output_layer = nn.Linear(n_features, n_outputs)
+
+        # Calculate the number of parameters
+        self.n_parameters = 0
+        for _param in list(self.parameters()):
+            self.n_parameters += _param.numel()
 
         # Storage of training information
         self.train_losses = []
