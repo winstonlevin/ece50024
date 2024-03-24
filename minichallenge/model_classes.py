@@ -36,37 +36,15 @@ class ImageDataset(Dataset):
         except RuntimeError:
             return self.gen_noise_image()
 
-        # Find faces
-        faces, confidence = self.face_classifier.detectMultiScale2(img, scaleFactor=1.1, minNeighbors=1)
-        if len(faces) == 0:
-            # No faces found, default to using whole image
-            x, y = 0, 0
-            h, w = img.shape
-        else:
-            # Face(s) found, run classifier on most confident face
-            x, y, w, h = faces[np.asarray(confidence).argmax()]
-        sample = torch.as_tensor(img[y:y+h, x:x+w]).reshape((1, h, w)) / 255  # Normalize image, 0 = black, 1 = white
-
-        # Pad image from [1xhxw] to square [1xsxs]
-        if sample.shape[1] > sample.shape[2]:
-            dim = sample.shape[1]
-            pad_offset = (sample.shape[1] - sample.shape[2]) // 2
-            sample_padded = torch.zeros((1, dim, dim))
-            sample_padded[:, :, pad_offset:pad_offset+sample.shape[2]] = sample
-        elif sample.shape[1] < sample.shape[2]:
-            dim = sample.shape[2]
-            pad_offset = (sample.shape[2] - sample.shape[1]) // 2
-            sample_padded = torch.zeros((1, dim, dim))
-            sample_padded[:, pad_offset:pad_offset+sample.shape[1], :] = sample
-        else:
-            sample_padded = sample
+        h, w = img.shape
+        sample = torch.as_tensor(img).reshape((1, h, w)) / 255  # Normalize image, 0 = black, 1 = white
 
         # Apply transformation
         if self.transform is not None:
-            sample_padded = self.transform(sample_padded)
+            sample = self.transform(sample)
         target = self.targets[index]
 
-        return sample_padded, target
+        return sample, target
 
     def gen_noise_image(self):
         # Generate noise and return no image index
