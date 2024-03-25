@@ -21,8 +21,7 @@ n_hidden_layers = 5
 n_pixels = 2**(n_hidden_layers+2)
 learning_rate = 1e-3
 
-# curriculum_n_categories = [5, 30, 60, 100]
-curriculum_n_categories = [0]
+curriculum_n_categories = [5, 30, 60, 100]
 curriculum_accuracies = len(curriculum_n_categories) * [50]
 curriculum_accuracies[-1] = 99
 curriculum_epochs_max = len(curriculum_n_categories) * [10]
@@ -117,7 +116,7 @@ for curr_idx, (n_cat, acc_min, epochs_max) in enumerate(zip(
 current_time = time.gmtime()
 date = f'{current_time.tm_year:04d}-{current_time.tm_mon:02d}-{current_time.tm_mday:02d}'
 hour = f'{current_time.tm_hour:02d}-{current_time.tm_min:02d}-{current_time.tm_sec:02d}'
-file_name = f'../tmp/models/MNIST_{date}_{hour}.pickle'
+file_name = f'../tmp/models/Celebrity_{date}_{hour}.pickle'
 os.makedirs(os.path.dirname(file_name), exist_ok=True)  # Make directory if it does not yet exist
 with open(file_name, 'wb') as f:
     pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
