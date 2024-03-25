@@ -1,7 +1,6 @@
 import os
 import pickle
 import time
-import random
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -15,16 +14,19 @@ from model_classes import ImageDataset, ImageClassifier, train, validate
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 n_features = 64
 batch_size = 32
-n_pixels = 64
+# n_pixels = 64
 kernel_size = 3
 pool_size = 2
-n_hidden_layers = 2
+n_hidden_layers = 5
+n_pixels = 2**(n_hidden_layers+2)
 learning_rate = 1e-3
 
-epochs_max = 10
-curriculum_n_categories = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-curriculum_accuracies = len(curriculum_n_categories) * [80]
+# curriculum_n_categories = [5, 30, 60, 100]
+curriculum_n_categories = [0]
+curriculum_accuracies = len(curriculum_n_categories) * [50]
 curriculum_accuracies[-1] = 99
+curriculum_epochs_max = len(curriculum_n_categories) * [10]
+curriculum_epochs_max[-1] = 25
 include_no_image = True
 
 image_read_mode = ImageReadMode.GRAY
@@ -33,7 +35,7 @@ transform = transforms.Compose((
 ))
 
 # Load training and validation data ---------------------------------------------------------------------------------- #
-root = '../tmp/minichallenge_data/train/'
+root = '../tmp/minichallenge_data/train_cropped/'
 categories = list(np.loadtxt('category.csv', delimiter=',', skiprows=1, usecols=1, dtype=str))
 n_categories = len(categories)
 targets_train = np.loadtxt('data_train.csv', delimiter=',', usecols=0, dtype=int)
@@ -53,7 +55,9 @@ model = ImageClassifier(
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Training loop
-for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curriculum_accuracies)):
+for curr_idx, (n_cat, acc_min, epochs_max) in enumerate(zip(
+        curriculum_n_categories, curriculum_accuracies, curriculum_epochs_max
+)):
     print(f"Curriculum Stage #{curr_idx+1} [{n_cat} Categories, {acc_min/100:.0%} Accuracy]")
     # Progressively add more categories to identification to help model train
     idces_curriculum_train = targets_train < n_cat
@@ -82,14 +86,29 @@ for curr_idx, (n_cat, acc_min) in enumerate(zip(curriculum_n_categories, curricu
 
     train_losses, test_accuracies = [], []
     for epoch in range(epochs_max):
+        elapsed_time = -time.perf_counter()  # -t0
         train_loss = train(
             model, train_loader, optimizer, criterion, device, verbose=True, include_no_image=include_no_image
         )
         train_losses.append(train_loss)
         test_accuracy = validate(model, validation_loader, device)
         test_accuracies.append(test_accuracy)
-        print(f"Epoch [{epoch + 1}/{epochs_max}], Train Loss: {train_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
+        elapsed_time += time.perf_counter()  # Result is tf - t0
+        elapsed_hours = int(elapsed_time // 3600)
+        elapsed_minutes = int((elapsed_time - 3600*elapsed_hours) // 60)
+        elapsed_seconds = int(elapsed_time - 3600*elapsed_hours - 60 * elapsed_minutes)
+        print(
+            f"Epoch {epoch + 1}/{epochs_max}, Train Loss: {train_loss:.4f}, "
+            f"Test Accuracy: {test_accuracy/100:.0%}/{acc_min/100:.0%}, "
+            f"Epoch Time: {elapsed_hours:02d}:{elapsed_minutes:02d}:{elapsed_seconds:02d}"
+        )
         if test_accuracy > acc_min:
+            # Successful break (achieved desired accuracy)
+            print('Desired accuracy achieved, ending curriculum stage.')
+            break
+        if epoch > 2 and test_accuracies[-1] < test_accuracies[-2] < test_accuracies[-3]:
+            # Unsuccessful break (accuracy is diminishing, so overtraining is occurring)
+            print('Overtraining detected on validation set, ending curriculum stage early!')
             break
     model.train_losses.append(train_losses)
     model.test_accuracies.append(test_accuracies)

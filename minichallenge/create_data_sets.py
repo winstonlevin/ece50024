@@ -4,6 +4,7 @@ import shutil
 
 import numpy as np
 import cv2
+from PIL import Image
 
 FRAC_VALIDATION = 0.1  # Fraction of data from each category to act as validation
 SMALL_DATA_SET = False  # True -> test script on subset of data
@@ -27,7 +28,7 @@ os.makedirs(os.path.dirname(dir_test), exist_ok=True)
 face_classifier = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 
-def crop_data(_dir_uncropped, _dir_cropped, _img_names, _sf=1.1, _mn=5, convert_to_png=False):
+def crop_data(_dir_uncropped, _dir_cropped, _img_names, _sf=1.1, _mn=5):
     print(f'--- Cropping Images in {_dir_uncropped} ---')
     _n_images = len(_img_names)
     _success = np.ones(shape=(_n_images,), dtype=bool)
@@ -35,12 +36,8 @@ def crop_data(_dir_uncropped, _dir_cropped, _img_names, _sf=1.1, _mn=5, convert_
         if _idx % 100 == 0:
             print(f'Trying image {_idx + 1}/{_n_images}...')
         try:
-            if convert_to_png:
-                _image_png = _image.split('.')[0] + '.png'
-                shutil.copyfile(_dir_uncropped + _image, _dir_uncropped + _image_png)
-                _image = _image_png
-            # Load Image
-            _img = cv2.imread(_dir_uncropped + _image, cv2.IMREAD_GRAYSCALE)
+            with Image.open(_dir_uncropped + _image) as _img_raw:
+                _img = np.array(_img_raw.convert('L'))  # Create HxW NumPy array of grayscale image
             if _img is None:
                 raise RuntimeError('Image unable to load!')
 
@@ -90,10 +87,14 @@ else:
 successful_crop_train = np.zeros(shape=(len(targets),), dtype=bool)
 successful_crop_train[:n_images] = crop_data(root, dir_train, image_names_arr[:n_images], _mn=20)
 
-# TODO, try to save images which did not work as .png and then do it
+if not SMALL_DATA_SET:
+    # Try to save images which did not work as .png and then do crop
+    idces_png = np.logical_not(successful_crop_train)
+    images_possibly_png = image_names_arr[idces_png]
+    successful_crop_train[idces_png] = crop_data(root, dir_train, images_possibly_png, _mn=20)
 
 # Save results since this takes a LONG time to reproduce
-np.savetxt(dir_train + 'successful_crop.csv', successful_crop_train, delimiter=',')
+np.savetxt(dir_train + 'successful_crop.csv', successful_crop_train, delimiter=',', fmt='%s')
 
 # Separate images into training and validation set
 images_valid_arr = image_names_arr[successful_crop_train]
@@ -126,7 +127,6 @@ if not SMALL_DATA_SET:
     root_test = '../tmp/minichallenge_data/test/'
     for idx in range(len(image_names_test_arr)):
         image_names_test_arr[idx] += '.jpg'
-    np.savetxt('data_test.csv', image_names_test_arr, delimiter=',', fmt='%s')
 
     successful_crop_test = crop_data(root_test, dir_test, image_names_test_arr, _mn=20)
     successful_crop_test_str = np.asarray(successful_crop_test, dtype=str)
