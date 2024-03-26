@@ -118,10 +118,14 @@ for curr_idx, (n_cat, acc_min, epochs_max) in enumerate(zip(
 current_time = time.gmtime()
 date = f'{current_time.tm_year:04d}-{current_time.tm_mon:02d}-{current_time.tm_mday:02d}'
 hour = f'{current_time.tm_hour:02d}-{current_time.tm_min:02d}-{current_time.tm_sec:02d}'
-file_name = f'../tmp/models/Celebrity_{date}_{hour}.pickle'
-os.makedirs(os.path.dirname(file_name), exist_ok=True)  # Make directory if it does not yet exist
-with open(file_name, 'wb') as f:
+dir_save = '../tmp/models/'
+file_name = f'Celebrity_model_{date}_{hour}.pickle'
+file_name_transform = f'Celebrity_transform_{date}_{hour}.pickle'
+os.makedirs(os.path.dirname(dir_save), exist_ok=True)  # Make directory if it does not yet exist
+with open(dir_save + file_name, 'wb') as f:
     pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
+with open(dir_save + file_name_transform, 'wb') as f:
+    pickle.dump(transform, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 # Plotting the training loss and test accuracy ----------------------------------------------------------------------- #
 fig_accuracy = plt.figure(figsize=(10, 5))
