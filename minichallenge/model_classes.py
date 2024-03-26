@@ -70,28 +70,31 @@ class ImageClassifier(nn.Module):
         (2b.) ReLU activation of features
 
     (3) POOL LAYER
-        Pool features of each pixel into single feature vector
+        Pool features of remaining pixels into single feature vector
 
     (3) OUTPUT LAYER
-        Linear Transformation from feature vector to 10 possible classifications.
+        Linear Transformation from feature vector to possible classifications.
     """
     def __init__(
             self,
+            n_pixels: int, grayscale: bool,
             n_features: int = 64, kernel_size: int = 3, pool_size: int = 2,
-            n_hidden_layers: int = 1, activation_type: str = 'ReLU',
+            n_conv_layers: int = 1, n_dense_layers: int = 1, activation_type: str = 'ReLU',
             n_outputs: int = 100
     ):
 
         super(ImageClassifier, self).__init__()
-        self.n_features = n_features
-        self.kernel_size = kernel_size
-        self.pool_size = pool_size
-        self.n_hidden_layers = n_hidden_layers
-        self.activation_type = activation_type
-        self.n_outputs = n_outputs
+        self.n_pixels: int = n_pixels
+        self.n_features: int = n_features
+        self.kernel_size: int = kernel_size
+        self.pool_size: int = pool_size
+        self.n_conv_layers: int = n_conv_layers
+        self.n_dense_layers: int = n_dense_layers
+        self.activation_type: str = activation_type
+        self.n_outputs: int = n_outputs
 
-        self.stride = self.kernel_size // 2
-        self.padding = self.stride
+        self.stride: int = self.kernel_size // 2
+        self.padding: int = self.stride
 
         # Choose activation function based on type
         if self.activation_type.lower() == 'relu':
@@ -105,25 +108,31 @@ class ImageClassifier(nn.Module):
                 return nn.LeakyReLU(inplace=True)
         else:
             raise NotImplementedError(f'Activation type "{self.activation_type}" is not implemented!')
-        self.input_layer = nn.Sequential(
-            nn.Conv2d(
-                1, n_features, kernel_size=(self.kernel_size, self.kernel_size),
-                padding=self.padding, stride=(self.stride, self.stride)
-            ),  # in_channel (1 for grayscale), out_channels
-            gen_activation_fn()
-        )
-        self.hidden_layer = nn.Sequential()
-        for _ in range(self.n_hidden_layers):
-            self.hidden_layer.append(nn.Sequential(
+
+        self.conv_layers = nn.Sequential()
+        for idx_conv in range(self.n_conv_layers):
+            n_feat_in = 1 if idx_conv == 0 else self.n_features
+            self.conv_layers.append(nn.Sequential(
                 nn.Conv2d(
-                    n_features, n_features, kernel_size=(self.kernel_size, self.kernel_size),
+                    n_feat_in, self.n_features, kernel_size=(self.kernel_size, self.kernel_size),
                     padding=self.padding, stride=(self.stride, self.stride)
                 ),
                 gen_activation_fn(),
                 nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size))
             ))
-        self.pool_layer = nn.AdaptiveAvgPool2d((1, 1))
-        self.output_layer = nn.Linear(n_features, n_outputs)
+        self.pool_layer = nn.Flatten()
+        n_features_flat = self.n_features * (self.n_pixels // (self.pool_size**self.n_conv_layers))**2
+        self.dense_layers = nn.Sequential()
+        for idx_out in range(self.n_dense_layers):
+            if idx_out + 1 == self.n_dense_layers:
+                # Final layer must map to outputs
+                self.dense_layers.append(
+                    nn.Linear(n_features_flat, self.n_outputs)
+                )
+            else:
+                self.dense_layers.append(
+                    nn.Linear(n_features_flat, n_features_flat)
+                )
 
         # Calculate the number of parameters
         self.n_parameters = 0
@@ -135,11 +144,9 @@ class ImageClassifier(nn.Module):
         self.test_accuracies = []
 
     def forward(self, _state):
-        _state = self.input_layer(_state)  # Extract features from each pixel
-        _state = self.hidden_layer(_state)  # Propagate NODE
-        _state = self.pool_layer(_state)  # Pool features from each pixel
-        _state = torch.flatten(_state, 1)  # Remove extra dimensions for linear transform
-        _state = self.output_layer(_state)  # Convert pool of features to classifications
+        _state = self.conv_layers(_state)  # Convolution of image into feature vector
+        _state = self.pool_layer(_state)  # Pool features to flat feature vector
+        _state = self.dense_layers(_state)  # Convert feature vector to classifications
         return _state
 
 

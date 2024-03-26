@@ -12,14 +12,15 @@ from torchvision.io import ImageReadMode
 from model_classes import ImageDataset, ImageClassifier, train, validate
 
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
-n_features = 64
+n_features = 32
 batch_size = 32
 # n_pixels = 64
 kernel_size = 3
 pool_size = 2
-n_hidden_layers = 5
+n_conv_layers = 6  # Leave 128 features for 100 outputs
+n_dense_layers = 2
 activation_type = 'LeakyReLU'
-n_pixels = pool_size**(n_hidden_layers+2)
+n_pixels = 128
 learning_rate = 1e-3
 
 curriculum_n_categories = [100]
@@ -30,9 +31,12 @@ curriculum_epochs_max[-1] = 25
 include_no_image = True
 
 image_read_mode = ImageReadMode.GRAY
-transform = transforms.Compose((
+transform_train = transforms.Compose((
+    transforms.RandomAutocontrast(),  # Change contrast randomly
+    transforms.RandomPerspective(0.25),  # Rotate image to practice at multiple angles
     transforms.Resize((n_pixels, n_pixels)),  # Ensure all images are same size
 ))
+transform_test = transforms.Resize((n_pixels, n_pixels))
 
 # Load training and validation data ---------------------------------------------------------------------------------- #
 root = '../tmp/minichallenge_data/train_cropped/'
@@ -50,8 +54,9 @@ criterion = nn.CrossEntropyLoss()
 
 # Initialize the model, loss function, and optimizer
 model = ImageClassifier(
+    n_pixels=n_pixels, grayscale=True,
     n_features=n_features, kernel_size=3, pool_size=pool_size,
-    n_hidden_layers=n_hidden_layers, activation_type=activation_type, n_outputs=n_categories
+    n_conv_layers=n_conv_layers, n_dense_layers=n_dense_layers, activation_type=activation_type, n_outputs=n_categories
 ).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -74,12 +79,12 @@ for curr_idx, (n_cat, acc_min, epochs_max) in enumerate(zip(
 
     dataset_train = ImageDataset(
         root=root, images=images_train_curr, targets=targets_train_curr, n_targets=n_categories,
-        transform=transform, image_read_mode=image_read_mode
+        transform=transform_train, image_read_mode=image_read_mode
     )
     dataset_validation = ImageDataset(
         root=root, images=list(images_validation[idces_curriculum_validation]),
         targets=list(targets_validation[idces_curriculum_validation]), n_targets=n_categories,
-        transform=transform, image_read_mode=image_read_mode
+        transform=transform_test, image_read_mode=image_read_mode
     )
 
     train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
@@ -125,19 +130,21 @@ os.makedirs(os.path.dirname(dir_save), exist_ok=True)  # Make directory if it do
 with open(dir_save + file_name, 'wb') as f:
     pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
 with open(dir_save + file_name_transform, 'wb') as f:
-    pickle.dump(transform, f, protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(transform_test, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 # Plotting the training loss and test accuracy ----------------------------------------------------------------------- #
 fig_accuracy = plt.figure(figsize=(10, 5))
 
 ax_loss = fig_accuracy.add_subplot(121)
-ax_loss.plot(model.train_losses)
+ax_loss.grid()
+ax_loss.plot(model.train_losses[-1])
 ax_loss.set_xlabel('Epoch')
 ax_loss.set_ylabel('Training Loss')
 ax_loss.set_title('Training Loss vs. Epoch')
 
 ax_accuracy = fig_accuracy.add_subplot(122)
-ax_accuracy.plot(model.test_accuracies)
+ax_accuracy.grid()
+ax_accuracy.plot(model.test_accuracies[-1])
 ax_accuracy.set_xlabel('Epoch')
 ax_accuracy.set_ylabel('Test Accuracy (%)')
 ax_accuracy.set_title('Test Accuracy vs. Epoch')
