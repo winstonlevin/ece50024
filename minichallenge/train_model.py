@@ -18,10 +18,11 @@ batch_size = 32
 kernel_size = 3
 pool_size = 2
 n_hidden_layers = 5
-n_pixels = 2**(n_hidden_layers+2)
+activation_type = 'LeakyReLU'
+n_pixels = pool_size**(n_hidden_layers+2)
 learning_rate = 1e-3
 
-curriculum_n_categories = [5, 30, 60, 100]
+curriculum_n_categories = [100]
 curriculum_accuracies = len(curriculum_n_categories) * [50]
 curriculum_accuracies[-1] = 99
 curriculum_epochs_max = len(curriculum_n_categories) * [10]
@@ -49,7 +50,8 @@ criterion = nn.CrossEntropyLoss()
 
 # Initialize the model, loss function, and optimizer
 model = ImageClassifier(
-    n_features=n_features, n_outputs=n_categories, kernel_size=3, pool_size=pool_size, n_hidden_layers=n_hidden_layers
+    n_features=n_features, kernel_size=3, pool_size=pool_size,
+    n_hidden_layers=n_hidden_layers, activation_type=activation_type, n_outputs=n_categories
 ).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -57,7 +59,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 for curr_idx, (n_cat, acc_min, epochs_max) in enumerate(zip(
         curriculum_n_categories, curriculum_accuracies, curriculum_epochs_max
 )):
-    print(f"Curriculum Stage #{curr_idx+1} [{n_cat} Categories, {acc_min/100:.0%} Accuracy]")
+    print(f"\nCurriculum Stage #{curr_idx+1} [{n_cat} Categories, {acc_min/100:.0%} Accuracy]")
     # Progressively add more categories to identification to help model train
     idces_curriculum_train = targets_train < n_cat
     idces_curriculum_validation = targets_validation < n_cat

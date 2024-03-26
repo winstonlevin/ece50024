@@ -77,7 +77,8 @@ class ImageClassifier(nn.Module):
     """
     def __init__(
             self,
-            n_features: int = 64, kernel_size: int = 3, pool_size: int = 2, n_hidden_layers: int = 1,
+            n_features: int = 64, kernel_size: int = 3, pool_size: int = 2,
+            n_hidden_layers: int = 1, activation_type: str = 'ReLU',
             n_outputs: int = 100
     ):
 
@@ -86,16 +87,30 @@ class ImageClassifier(nn.Module):
         self.kernel_size = kernel_size
         self.pool_size = pool_size
         self.n_hidden_layers = n_hidden_layers
+        self.activation_type = activation_type
         self.n_outputs = n_outputs
 
         self.stride = self.kernel_size // 2
         self.padding = self.stride
+
+        # Choose activation function based on type
+        if self.activation_type.lower() == 'relu':
+            def gen_activation_fn():
+                return nn.ReLU(inplace=True)
+        elif self.activation_type.lower() == 'elu':
+            def gen_activation_fn():
+                return nn.ELU(inplace=True)
+        elif "leaky" in self.activation_type.lower():
+            def gen_activation_fn():
+                return nn.LeakyReLU(inplace=True)
+        else:
+            raise NotImplementedError(f'Activation type "{self.activation_type}" is not implemented!')
         self.input_layer = nn.Sequential(
             nn.Conv2d(
                 1, n_features, kernel_size=(self.kernel_size, self.kernel_size),
                 padding=self.padding, stride=(self.stride, self.stride)
             ),  # in_channel (1 for grayscale), out_channels
-            nn.ReLU(inplace=True)  # inplace=True argument modifies the input tensor directly, saving memory.
+            gen_activation_fn()
         )
         self.hidden_layer = nn.Sequential()
         for _ in range(self.n_hidden_layers):
@@ -104,7 +119,7 @@ class ImageClassifier(nn.Module):
                     n_features, n_features, kernel_size=(self.kernel_size, self.kernel_size),
                     padding=self.padding, stride=(self.stride, self.stride)
                 ),
-                nn.ReLU(inplace=True),
+                gen_activation_fn(),
                 nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size))
             ))
         self.pool_layer = nn.AdaptiveAvgPool2d((1, 1))
