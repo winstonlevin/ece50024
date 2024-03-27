@@ -12,7 +12,7 @@ from torchvision.io import ImageReadMode
 from model_classes import ImageDataset, ImageClassifier, train, validate
 
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
-n_features = 32
+n_filters = 64
 batch_size = 32
 # n_pixels = 64
 kernel_size = 3
@@ -21,6 +21,8 @@ n_conv_layers = 6  # Leave 128 features for 100 outputs
 n_dense_layers = 2
 activation_type = 'LeakyReLU'
 n_pixels = 128
+n_convs_per_layer = 2
+use_pool = True
 learning_rate = 1e-3
 
 curriculum_n_categories = [100]
@@ -55,8 +57,9 @@ criterion = nn.CrossEntropyLoss()
 # Initialize the model, loss function, and optimizer
 model = ImageClassifier(
     n_pixels=n_pixels, grayscale=True,
-    n_features=n_features, kernel_size=3, pool_size=pool_size,
-    n_conv_layers=n_conv_layers, n_dense_layers=n_dense_layers, activation_type=activation_type, n_outputs=n_categories
+    n_filters=n_filters, kernel_size=3, pool_size=pool_size,
+    n_conv_layers=n_conv_layers, n_dense_layers=n_dense_layers, activation_type=activation_type,
+    n_convs_per_layer=n_convs_per_layer, use_pool=use_pool, n_outputs=n_categories
 ).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 

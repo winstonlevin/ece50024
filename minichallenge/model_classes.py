@@ -1,3 +1,4 @@
+from typing import Union, Sequence
 import numpy as np
 import torch
 import torch.nn as nn
@@ -68,6 +69,7 @@ class ImageClassifier(nn.Module):
     (2) HIDDEN LAYER(S)
         (2a.) 2D channel-wise convolution of feature vector
         (2b.) ReLU activation of features
+        (3b.) Pool
 
     (3) POOL LAYER
         Pool features of remaining pixels into single feature vector
@@ -78,20 +80,31 @@ class ImageClassifier(nn.Module):
     def __init__(
             self,
             n_pixels: int, grayscale: bool,
-            n_features: int = 64, kernel_size: int = 3, pool_size: int = 2,
+            n_filters: int = 64, kernel_size: int = 3, pool_size: int = 2,
             n_conv_layers: int = 1, n_dense_layers: int = 1, activation_type: str = 'ReLU',
-            n_outputs: int = 100
+            n_convs_per_layer: Union[int, Sequence] = 1, use_pool: Union[bool, Sequence] = True, n_outputs: int = 100
     ):
 
         super(ImageClassifier, self).__init__()
         self.n_pixels: int = n_pixels
-        self.n_features: int = n_features
+        self.grayscale: bool = grayscale
+        self.n_filters: int = n_filters
         self.kernel_size: int = kernel_size
         self.pool_size: int = pool_size
         self.n_conv_layers: int = n_conv_layers
         self.n_dense_layers: int = n_dense_layers
         self.activation_type: str = activation_type
         self.n_outputs: int = n_outputs
+
+        if isinstance(n_convs_per_layer, Sequence):
+            self.n_convs_per_layer = n_convs_per_layer
+        else:
+            self.n_convs_per_layer = self.n_conv_layers * [n_convs_per_layer]
+
+        if isinstance(use_pool, Sequence):
+            self.use_pool = use_pool
+        else:
+            self.use_pool = self.n_conv_layers * [use_pool]
 
         self.stride: int = self.kernel_size // 2
         self.padding: int = self.stride
@@ -111,17 +124,26 @@ class ImageClassifier(nn.Module):
 
         self.conv_layers = nn.Sequential()
         for idx_conv in range(self.n_conv_layers):
-            n_feat_in = 1 if idx_conv == 0 else self.n_features
-            self.conv_layers.append(nn.Sequential(
-                nn.Conv2d(
-                    n_feat_in, self.n_features, kernel_size=(self.kernel_size, self.kernel_size),
-                    padding=self.padding, stride=(self.stride, self.stride)
-                ),
-                gen_activation_fn(),
-                nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size))
-            ))
+            # Form specified number of CNN layers, where each CNN layer has specified number of convolutions/activations
+            # followed by a pool if use_pool is True
+            n_feat_in = 1 if idx_conv == 0 else self.n_filters
+            convs = nn.Sequential()
+            for idx_n_convs in range(self.n_convs_per_layer[idx_conv]):
+                convs.extend((
+                    nn.Conv2d(
+                        n_feat_in, self.n_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                        padding=self.padding, stride=(self.stride, self.stride)),
+                    gen_activation_fn()
+                ))
+                n_feat_in = self.n_filters  # Ensure n_feat_in = 1 is overwritten
+
+            if self.use_pool[idx_conv]:
+                convs.append(nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size)))
+            self.conv_layers.append(convs)
+
         self.pool_layer = nn.Flatten()
-        n_features_flat = self.n_features * (self.n_pixels // (self.pool_size**self.n_conv_layers))**2
+        n_pools = np.asarray(self.use_pool, dtype=int).sum()
+        n_features_flat = self.n_filters * (self.n_pixels // (self.pool_size ** n_pools)) ** 2
         self.dense_layers = nn.Sequential()
         for idx_out in range(self.n_dense_layers):
             if idx_out + 1 == self.n_dense_layers:
@@ -130,9 +152,11 @@ class ImageClassifier(nn.Module):
                     nn.Linear(n_features_flat, self.n_outputs)
                 )
             else:
-                self.dense_layers.append(
-                    nn.Linear(n_features_flat, n_features_flat)
-                )
+                # Intermediate layer with activation for non-linearity
+                self.dense_layers.append(nn.Sequential(
+                    nn.Linear(n_features_flat, n_features_flat),
+                    gen_activation_fn()
+                ))
 
         # Calculate the number of parameters
         self.n_parameters = 0
@@ -159,7 +183,7 @@ def train(model, train_loader, optimizer, criterion, device, verbose=True, inclu
     n_batches = len(train_loader)
     idx_report = max(1, int(n_batches / 10))
     if verbose:
-        print(f'\n')
+        print('')  # 1 new line
 
     for idx, (inputs, labels) in enumerate(train_loader):
         if verbose and idx % idx_report == 0:
