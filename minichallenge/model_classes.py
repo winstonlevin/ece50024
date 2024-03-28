@@ -79,7 +79,7 @@ class ImageClassifier(nn.Module):
     """
     def __init__(
             self,
-            n_pixels: int, grayscale: bool,
+            n_pixels: int, grayscale: bool, n_pixel_after_pooling: int = 1,
             n_filters: int = 64, kernel_size: int = 3, pool_size: int = 2,
             n_conv_layers: int = 1, n_dense_layers: int = 1, activation_type: str = 'ReLU',
             n_convs_per_layer: Union[int, Sequence] = 1, use_pool: Union[bool, Sequence] = True, n_outputs: int = 100
@@ -95,6 +95,7 @@ class ImageClassifier(nn.Module):
         self.n_dense_layers: int = n_dense_layers
         self.activation_type: str = activation_type
         self.n_outputs: int = n_outputs
+        self.n_pixel_after_pooling: int = n_pixel_after_pooling
 
         if isinstance(n_convs_per_layer, Sequence):
             self.n_convs_per_layer = n_convs_per_layer
@@ -141,20 +142,23 @@ class ImageClassifier(nn.Module):
                 convs.append(nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size)))
             self.conv_layers.append(convs)
 
-        self.pool_layer = nn.Flatten()
+        self.pool_layer = nn.Sequential(
+            nn.AdaptiveAvgPool2d(output_size=self.n_pixel_after_pooling),
+            nn.Flatten()
+        )
         n_pools = np.asarray(self.use_pool, dtype=int).sum()
-        n_features_flat = self.n_filters * (self.n_pixels // (self.pool_size ** n_pools)) ** 2
+        self.n_features = self.n_pixel_after_pooling ** 2 * self.n_filters
         self.dense_layers = nn.Sequential()
         for idx_out in range(self.n_dense_layers):
             if idx_out + 1 == self.n_dense_layers:
                 # Final layer must map to outputs
                 self.dense_layers.append(
-                    nn.Linear(n_features_flat, self.n_outputs)
+                    nn.Linear(self.n_features, self.n_outputs)
                 )
             else:
                 # Intermediate layer with activation for non-linearity
                 self.dense_layers.append(nn.Sequential(
-                    nn.Linear(n_features_flat, n_features_flat),
+                    nn.Linear(self.n_features, self.n_features),
                     gen_activation_fn()
                 ))
 
@@ -166,6 +170,7 @@ class ImageClassifier(nn.Module):
         # Storage of training information
         self.train_losses = []
         self.test_accuracies = []
+        self.state_dicts = []
 
     def forward(self, _state):
         _state = self.conv_layers(_state)  # Convolution of image into feature vector
