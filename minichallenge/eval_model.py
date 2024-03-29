@@ -7,7 +7,7 @@ from torchvision.transforms import transforms
 
 from model_classes import ImageDataset
 
-with open('canonical/model_acc54.pickle', 'rb') as file:
+with open('canonical/model_acc54_adapt_ave.pickle', 'rb') as file:
     model = pickle.load(file)
 # with open('canonical/transform_acc50.pickle', 'rb') as file:
 #     transform = pickle.load(file)
@@ -69,9 +69,10 @@ except FileNotFoundError as _:
     print(f'Saving results to "{file_name}".')
 
 # Append to running list of all results
+# (Assume the test accuracy will by 98% of the validation accuracy)
 file_name_compilation = 'compiled_test_results.csv'
 celeb_names_with_header = np.vstack((
-    np.asarray((validation_acc,), dtype=str).reshape((-1, 1)),
+    np.asarray((0.98*validation_acc,), dtype=str).reshape((-1, 1)),
     celebrity_names_arr.reshape((-1, 1))
 ))
 try:

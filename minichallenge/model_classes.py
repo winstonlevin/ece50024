@@ -80,7 +80,7 @@ class ImageClassifier(nn.Module):
     def __init__(
             self,
             n_pixels: int, grayscale: bool, n_pixel_after_pooling: int = 1,
-            n_filters: int = 64, kernel_size: int = 3, pool_size: int = 2,
+            n_filters: int = 64, kernel_size: int = 3, pool_size: int = 2, pool_type: str = 'MaxPool2D',
             n_conv_layers: int = 1, n_dense_layers: int = 1, activation_type: str = 'ReLU',
             n_convs_per_layer: Union[int, Sequence] = 1, use_pool: Union[bool, Sequence] = True, n_outputs: int = 100
     ):
@@ -91,6 +91,7 @@ class ImageClassifier(nn.Module):
         self.n_filters: int = n_filters
         self.kernel_size: int = kernel_size
         self.pool_size: int = pool_size
+        self.pool_type: str = pool_type
         self.n_conv_layers: int = n_conv_layers
         self.n_dense_layers: int = n_dense_layers
         self.activation_type: str = activation_type
@@ -123,7 +124,18 @@ class ImageClassifier(nn.Module):
         else:
             raise NotImplementedError(f'Activation type "{self.activation_type}" is not implemented!')
 
+        # Choose pool function based on type
+        if "max" in self.pool_type.lower():
+            def gen_pool_fn(_):
+                return nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size))
+        elif "adapt" in self.pool_type.lower():
+            gen_pool_fn = self.gen_adaptive_pool
+        else:
+            raise NotImplementedError(f'Pool type "{self.pool_type}" is not implemented!')
+
+        # Generate convolutional layers ------------------------------------------------------------------------------ #
         self.conv_layers = nn.Sequential()
+        size_conv_out = self.n_pixels
         for idx_conv in range(self.n_conv_layers):
             # Form specified number of CNN layers, where each CNN layer has specified number of convolutions/activations
             # followed by a pool if use_pool is True
@@ -137,17 +149,21 @@ class ImageClassifier(nn.Module):
                     gen_activation_fn()
                 ))
                 n_feat_in = self.n_filters  # Ensure n_feat_in = 1 is overwritten
+                size_conv_out = int(1 + (size_conv_out + 2*self.padding - (self.kernel_size - 1) - 1) // self.stride)
 
             if self.use_pool[idx_conv]:
-                convs.append(nn.MaxPool2d(kernel_size=(self.pool_size, self.pool_size)))
+                convs.append(gen_pool_fn(size_conv_out))
+                size_conv_out //= self.pool_size
             self.conv_layers.append(convs)
 
+        # Final pool layer into flat feature vector
         self.pool_layer = nn.Sequential(
             nn.AdaptiveAvgPool2d(output_size=self.n_pixel_after_pooling),
             nn.Flatten()
         )
-        n_pools = np.asarray(self.use_pool, dtype=int).sum()
         self.n_features = self.n_pixel_after_pooling ** 2 * self.n_filters
+
+        # Generate dense layers to operate on feature vector --------------------------------------------------------- #
         self.dense_layers = nn.Sequential()
         for idx_out in range(self.n_dense_layers):
             if idx_out + 1 == self.n_dense_layers:
@@ -177,6 +193,10 @@ class ImageClassifier(nn.Module):
         _state = self.pool_layer(_state)  # Pool features to flat feature vector
         _state = self.dense_layers(_state)  # Convert feature vector to classifications
         return _state
+
+    def gen_adaptive_pool(self, input_size):
+        output_size = int(input_size / self.pool_size)
+        return nn.AdaptiveAvgPool2d(output_size=output_size)
 
 
 def train(model, train_loader, optimizer, criterion, device, verbose=True, include_no_image=False):

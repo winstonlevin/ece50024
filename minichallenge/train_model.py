@@ -19,6 +19,7 @@ kernel_size = 3
 pool_size = 2
 n_dense_layers = 1
 activation_type = 'LeakyReLU'
+pool_type = 'AdaptiveAvgPool2d'
 n_pixels = 128
 n_convs_per_layer = (2, 2, 2,)  # 3 layers -> 16x16 is final image width/height
 n_conv_layers = len(n_convs_per_layer)
@@ -81,7 +82,7 @@ criterion = nn.CrossEntropyLoss()
 # Initialize the model, loss function, and optimizer
 model = ImageClassifier(
     n_pixels=n_pixels, grayscale=True, n_pixel_after_pooling=n_pixels_after_pooling,
-    n_filters=n_filters, kernel_size=3, pool_size=pool_size,
+    n_filters=n_filters, kernel_size=3, pool_size=pool_size, pool_type=pool_type,
     n_conv_layers=n_conv_layers, n_dense_layers=n_dense_layers, activation_type=activation_type,
     n_convs_per_layer=n_convs_per_layer, use_pool=use_pool, n_outputs=n_categories
 ).to(device)
