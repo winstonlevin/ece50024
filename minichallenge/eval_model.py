@@ -3,13 +3,23 @@ import pickle
 import numpy as np
 import torch
 from torchvision.io import ImageReadMode
+from torchvision.transforms import transforms
 
 from model_classes import ImageDataset
 
-with open('canonical/model_acc50.pickle', 'rb') as file:
+with open('canonical/model_acc54.pickle', 'rb') as file:
     model = pickle.load(file)
-with open('canonical/transform_acc50.pickle', 'rb') as file:
-    transform = pickle.load(file)
+# with open('canonical/transform_acc50.pickle', 'rb') as file:
+#     transform = pickle.load(file)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+# Choose best params
+
+state_dict_arr = np.asarray(model.state_dicts, dtype=object)
+training_acc_arr = np.asarray(model.test_accuracies)
+model.load_state_dict(state_dict_arr.flatten()[training_acc_arr.argmax()])
+transform = transforms.Resize((model.n_pixels, model.n_pixels))
+
 image_read_mode = ImageReadMode.GRAY
 
 # Mapping from numerical categories to text category
@@ -29,7 +39,6 @@ batch_size = 64
 test_loader = torch.utils.data.DataLoader(dataset_test, batch_size=batch_size, shuffle=False)
 
 # Evaluate model ----------------------------------------------------------------------------------------------------- #
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 idx = 0
 n_batches = len(test_loader)
 for current_batch, (inputs, _) in enumerate(test_loader, start=1):
