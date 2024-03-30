@@ -7,7 +7,7 @@ from torchvision.transforms import transforms
 
 from model_classes import ImageDataset
 
-with open('canonical/model_acc54_adapt_ave.pickle', 'rb') as file:
+with open('canonical/model_acc53_7CNN.pickle', 'rb') as file:
     model = pickle.load(file)
 # with open('canonical/transform_acc50.pickle', 'rb') as file:
 #     transform = pickle.load(file)
