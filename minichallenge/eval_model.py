@@ -7,7 +7,7 @@ from torchvision.transforms import transforms
 
 from model_classes import ImageDataset
 
-with open('canonical/model_acc53_7CNN.pickle', 'rb') as file:
+with open('canonical/model_8CNN.pickle', 'rb') as file:
     model = pickle.load(file)
 # with open('canonical/transform_acc50.pickle', 'rb') as file:
 #     transform = pickle.load(file)
@@ -15,8 +15,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = model.to(device)
 # Choose best params
 
-state_dict_arr = np.asarray(model.state_dicts, dtype=object)
-validation_acc_arr = np.asarray(model.test_accuracies)
+state_dict_arr = np.asarray(model.state_dicts[-1], dtype=object)
+validation_acc_arr = np.asarray(model.test_accuracies[-1])
 model.load_state_dict(state_dict_arr.flatten()[validation_acc_arr.argmax()])
 validation_acc = validation_acc_arr.flatten()[validation_acc_arr.argmax()]
 transform = transforms.Resize((model.n_pixels, model.n_pixels))
