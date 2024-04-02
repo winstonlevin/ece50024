@@ -54,7 +54,7 @@ file_name = 'test_results.csv'
 try:
     previous_celebrity_names = np.loadtxt(file_name, dtype=str, skiprows=1, usecols=1, delimiter=',')
     num_changed = n_output - np.sum(celebrity_names_arr == previous_celebrity_names)
-    print(f'Saving new results to "{file_name}", '
+    print(f'Saving new results to "{file_name}" with expected accuracy {accuracy_ensemble:.2%}: '
           f'{num_changed}/{n_output} ({num_changed/n_output:.2%}) changed from previous results.')
 except FileNotFoundError as _:
     print(f'Saving results to "{file_name}".')
@@ -65,31 +65,3 @@ data_to_save = np.hstack((
     celebrity_names_arr.reshape((-1, 1))
 ))
 np.savetxt(file_name, data_to_save, fmt='%s', delimiter=',', header='Id,Category', comments='')
-
-# Determine how alike models are
-similarity_mat = np.empty(shape=(n_models, n_models))
-for idx in range(n_models):
-    similarity_mat[idx, :] = np.sum(eval_predictions[:, idx:idx+1] == eval_predictions, axis=0) / n_output
-
-# Use uniqueness of prediction to weight less similar models more heavily
-uniqueness_mat = np.linalg.inv(similarity_mat)
-
-# Convert predictions to integer and determine model similarities
-prediction_arr = np.zeros((n_output, n_models, n_categories), dtype=int)
-for idx in range(n_categories):
-    prediction_arr[:, :, idx] = (eval_predictions == categories_arr[idx]) * eval_accuracies
-
-# Create weighted prediction from the multiple models
-predictions_ensemble = (uniqueness_mat @ prediction_arr).sum(axis=1).argmax(axis=1)
-
-# Save data in correct format ---------------------------------------------------------------------------------------- #
-celebrity_names_arr = categories_arr[predictions_ensemble]
-file_name = 'test_results.csv'
-
-try:
-    previous_celebrity_names = np.loadtxt(file_name, dtype=str, skiprows=1, usecols=1, delimiter=',')
-    num_changed = n_output - np.sum(celebrity_names_arr == previous_celebrity_names)
-    print(f'Saving new results to "{file_name}", '
-          f'{num_changed}/{n_output} ({num_changed/n_output:.2%}) changed from previous results.')
-except FileNotFoundError as _:
-    print(f'Saving results to "{file_name}".')

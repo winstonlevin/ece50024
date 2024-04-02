@@ -21,9 +21,9 @@ n_dense_layers = 1
 activation_type = 'LeakyReLU'
 pool_type = 'MaxPool2d'
 n_pixels = 128
-n_convs_per_layer = (3, 3, 2,)  # 3 layers -> 16x16 is final image width/height
+n_convs_per_layer = (3, 3, 2, 2)  # 4 layers -> 8x8 is final image width/height
 n_conv_layers = len(n_convs_per_layer)
-n_pixels_after_pooling = 2  # Pool 16x16 to 2x2 and leave 64x2x2 features
+n_pixels_after_pooling = 2  # Pool 8x8 to 2x2 and leave 64x2x2 features
 use_pool = True
 learning_rate = 1e-3
 
@@ -148,7 +148,7 @@ for curr_idx, (n_cat, acc_min, epochs_max) in enumerate(zip(
         elapsed_seconds = int(elapsed_time - 3600*elapsed_hours - 60 * elapsed_minutes)
         print(
             f"Epoch {epoch + 1}/{epochs_max}, Train Loss: {train_loss:.4f}, "
-            f"Test Accuracy: {test_accuracy/100:.0%}/{acc_min/100:.0%}, "
+            f"Test Accuracy: {test_accuracy/100:.2%}/{acc_min/100:.0%}, "
             f"Epoch Time: {elapsed_hours:02d}:{elapsed_minutes:02d}:{elapsed_seconds:02d}"
         )
         if test_accuracy > acc_min:
