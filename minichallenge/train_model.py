@@ -49,7 +49,7 @@ transform_test = transforms.Resize((n_pixels, n_pixels))
 transform_train = transform_test
 
 # Load training and validation data ---------------------------------------------------------------------------------- #
-root = '../tmp/minichallenge_data/train_cropped/'
+root = '../tmp/minichallenge_data/train_cropped_multifeature/'
 categories = list(np.loadtxt('category.csv', delimiter=',', skiprows=1, usecols=1, dtype=str))
 n_categories = len(categories)
 
