@@ -80,7 +80,7 @@ class ImageClassifier(nn.Module):
     def __init__(
             self,
             n_pixels: int, grayscale: bool, n_pixel_after_pooling: int = 1,
-            n_filters: int = 64, kernel_size: int = 3, pool_size: int = 2, pool_type: str = 'MaxPool2D',
+            n_filters: Union[int, Sequence] = 64, kernel_size: int = 3, pool_size: int = 2, pool_type: str = 'MaxPool2D',
             n_conv_layers: int = 1, n_dense_layers: int = 1, activation_type: str = 'ReLU',
             n_convs_per_layer: Union[int, Sequence] = 1, use_pool: Union[bool, Sequence] = True, n_outputs: int = 100
     ):
@@ -97,6 +97,11 @@ class ImageClassifier(nn.Module):
         self.activation_type: str = activation_type
         self.n_outputs: int = n_outputs
         self.n_pixel_after_pooling: int = n_pixel_after_pooling
+
+        if isinstance(n_filters, Sequence):
+            self.n_filters = n_filters
+        else:
+            self.n_filters = self.n_conv_layers * [n_filters]
 
         if isinstance(n_convs_per_layer, Sequence):
             self.n_convs_per_layer = n_convs_per_layer
@@ -139,16 +144,16 @@ class ImageClassifier(nn.Module):
         for idx_conv in range(self.n_conv_layers):
             # Form specified number of CNN layers, where each CNN layer has specified number of convolutions/activations
             # followed by a pool if use_pool is True
-            n_feat_in = 1 if idx_conv == 0 else self.n_filters
+            n_feat_in = 1 if idx_conv == 0 else self.n_filters[idx_conv - 1]
             convs = nn.Sequential()
             for idx_n_convs in range(self.n_convs_per_layer[idx_conv]):
                 convs.extend((
                     nn.Conv2d(
-                        n_feat_in, self.n_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                        n_feat_in, self.n_filters[idx_conv], kernel_size=(self.kernel_size, self.kernel_size),
                         padding=self.padding, stride=(self.stride, self.stride)),
                     gen_activation_fn()
                 ))
-                n_feat_in = self.n_filters  # Ensure n_feat_in = 1 is overwritten
+                n_feat_in = self.n_filters[idx_conv]  # Ensure n_feat_in = 1 is overwritten
                 size_conv_out = int(1 + (size_conv_out + 2*self.padding - (self.kernel_size - 1) - 1) // self.stride)
 
             if self.use_pool[idx_conv]:
@@ -161,7 +166,7 @@ class ImageClassifier(nn.Module):
             nn.AdaptiveAvgPool2d(output_size=self.n_pixel_after_pooling),
             nn.Flatten()
         )
-        self.n_features = self.n_pixel_after_pooling ** 2 * self.n_filters
+        self.n_features = self.n_pixel_after_pooling ** 2 * self.n_filters[-1]
 
         # Generate dense layers to operate on feature vector --------------------------------------------------------- #
         self.dense_layers = nn.Sequential()

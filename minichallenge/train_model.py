@@ -14,32 +14,17 @@ from model_classes import ImageDataset, ImageClassifier, train, validate
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 # n_filters = 64
 batch_size = 32
-# # n_pixels = 64
-# kernel_size = 3
-# pool_size = 2
-# n_dense_layers = 1
-# activation_type = 'LeakyReLU'
-# pool_type = 'MaxPool2d'
-# n_pixels = 128
-# n_convs_per_layer = (3, 3, 2, 2)  # 4 layers -> 8x8 is final image width/height
-# n_conv_layers = len(n_convs_per_layer)
-# n_pixels_after_pooling = 2  # Pool 8x8 to 2x2 and leave 64x2x2 features
-# use_pool = True
-
-with open('canonical/model_acc54_adapt_ave.pickle', 'rb') as file:
-    model = pickle.load(file)
-
-# # Choose best parameters to seed training
-# validation_acc_arr = np.asarray(model.test_accuracies[-1])
-# state_dict_arr = np.asarray(model.state_dicts[-1], dtype=object)
-# model.load_state_dict(state_dict_arr.flatten()[validation_acc_arr.argmax()])
-
-# Choose parameters after best growth to seed training
-validation_acc_growth = np.diff(np.asarray(model.test_accuracies[-1]).flatten())
-state_dict_arr = np.asarray(model.state_dicts[-1], dtype=object).flatten()
-model.load_state_dict(state_dict_arr[1 + validation_acc_growth.argmax()])
-
-n_pixels = model.n_pixels
+kernel_size = 3
+pool_size = 2
+n_dense_layers = 1
+activation_type = 'LeakyReLU'
+pool_type = 'AdaptiveAvgPool2d'
+n_pixels = 128
+n_filters = (16, 32, 64)
+n_convs_per_layer = (4, 3, 3)  # 3 layers -> 16x16 is final image width/height
+n_conv_layers = len(n_convs_per_layer)
+n_pixels_after_pooling = 2  # Pool 16x16 to 2x2 and leave 64x2x2 features
+use_pool = True
 learning_rate = 1e-3
 
 curriculum_n_categories = [100]
@@ -52,14 +37,14 @@ pad_image_data = False  # Ensure equal amount of data for each target
 
 image_read_mode = ImageReadMode.GRAY
 # Get pseudo data from transformations
-transform_train = transforms.Compose((
-    transforms.Resize((n_pixels, n_pixels)),  # Ensure all images are same size
-    transforms.RandomAutocontrast(0.1),  # Change contrast randomly
-    transforms.RandomPerspective(0.1),  # Distort image to practice multiple perpectives
-    transforms.RandomRotation(10),  # Rotate image to practice at multiple angles
-))
+# transform_train = transforms.Compose((
+#     transforms.Resize((n_pixels, n_pixels)),  # Ensure all images are same size
+#     transforms.RandomAutocontrast(0.1),  # Change contrast randomly
+#     transforms.RandomPerspective(0.1),  # Distort image to practice multiple perpectives
+#     transforms.RandomRotation(10),  # Rotate image to practice at multiple angles
+# ))
 transform_test = transforms.Resize((n_pixels, n_pixels))
-# transform_train = transform_test
+transform_train = transform_test
 
 # Load training and validation data ---------------------------------------------------------------------------------- #
 root = '../tmp/minichallenge_data/train_cropped/'
@@ -95,13 +80,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 criterion = nn.CrossEntropyLoss()
 
 # Initialize the model, loss function, and optimizer
-model = model.to(device)
-# model = ImageClassifier(
-#     n_pixels=n_pixels, grayscale=True, n_pixel_after_pooling=n_pixels_after_pooling,
-#     n_filters=n_filters, kernel_size=3, pool_size=pool_size, pool_type=pool_type,
-#     n_conv_layers=n_conv_layers, n_dense_layers=n_dense_layers, activation_type=activation_type,
-#     n_convs_per_layer=n_convs_per_layer, use_pool=use_pool, n_outputs=n_categories
-# ).to(device)
+model = ImageClassifier(
+    n_pixels=n_pixels, grayscale=True, n_pixel_after_pooling=n_pixels_after_pooling,
+    n_filters=n_filters, kernel_size=3, pool_size=pool_size, pool_type=pool_type,
+    n_conv_layers=n_conv_layers, n_dense_layers=n_dense_layers, activation_type=activation_type,
+    n_convs_per_layer=n_convs_per_layer, use_pool=use_pool, n_outputs=n_categories
+).to(device)
 print(f'Model has:\n{model.n_features} Feat. and {model.n_parameters} Params.')
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
