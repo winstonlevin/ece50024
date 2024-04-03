@@ -191,6 +191,10 @@ class ImageClassifier(nn.Module):
         # Storage of training information
         self.train_losses = []
         self.test_accuracies = []
+        self.test_accuracies_raw = []
+        self.test_accuracies_face = []
+        self.test_accuracies_nose = []
+        self.test_accuracies_mouth = []
         self.state_dicts = []
 
     def forward(self, _state):
