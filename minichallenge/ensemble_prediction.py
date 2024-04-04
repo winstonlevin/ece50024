@@ -19,7 +19,7 @@ def ensemble_predictor(predictions, accuracies):
     for idx in range(n_models):
         similarity_mat[idx, :] = np.sum(
             (predictions[:, idx:idx + 1] == predictions) & (predictions != ImageDataset.NO_IMAGE)
-            , axis=0) / n_output
+            , axis=0) / (predictions != ImageDataset.NO_IMAGE).sum(axis=0)
 
     # Use uniqueness of prediction to weight less similar models more heavily
     uniqueness_mat = np.linalg.inv(similarity_mat)
