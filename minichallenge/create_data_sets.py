@@ -42,8 +42,16 @@ def crop_data(_dir_uncropped, _dir_cropped, _img_names, _classifier, _sf=1.1, _m
     _n_images = len(_img_names)
     _success = np.zeros(shape=(_n_images,), dtype=bool)
     for _idx, _image in enumerate(_img_names):
-        if _idx % 100 == 0:
-            print(f'Trying image {_idx + 1}/{_n_images}...')
+        # Attempt to load image and move on if it already exists
+        try:
+            with Image.open(_dir_cropped + _image) as _img_raw:
+                _img_cropped = np.array(_img_raw.convert('L'))
+                _success[_idx] = True
+                continue
+        except FileNotFoundError as _:
+            if _idx % 100 == 0:
+                print(f'Trying image {_idx + 1}/{_n_images}...')
+
         try:
             with Image.open(_dir_uncropped + _image) as _img_raw:
                 _img = np.array(_img_raw.convert('L'))  # Create HxW NumPy array of grayscale image
@@ -118,59 +126,59 @@ def separate_train_and_validation(_images, _targets):
 
 
 # CROP TRAINING DATA ------------------------------------------------------------------------------------------------- #
-# Raw images
-os.makedirs(os.path.dirname(dir_train + 'raw/'), exist_ok=True)
-crop_data(root, dir_train + 'raw/', image_names_arr, _classifier=None, save_raw=True)
-data_raw_train, data_raw_validation = separate_train_and_validation(
-    image_names_arr, targets_arr
-)
-np.savetxt('data_raw_train.csv', data_raw_train, delimiter=',', fmt='%s')
-np.savetxt('data_raw_validation.csv', data_raw_validation, delimiter=',', fmt='%s')
+# # Raw images
+# os.makedirs(os.path.dirname(dir_train + 'raw/'), exist_ok=True)
+# crop_data(root, dir_train + 'raw/', image_names_arr, _classifier=None, save_raw=True)
+# data_raw_train, data_raw_validation = separate_train_and_validation(
+#     image_names_arr, targets_arr
+# )
+# np.savetxt('data_raw_train.csv', data_raw_train, delimiter=',', fmt='%s')
+# np.savetxt('data_raw_validation.csv', data_raw_validation, delimiter=',', fmt='%s')
+#
+# # Try to crop out faces
+# os.makedirs(os.path.dirname(dir_train + 'faces/'), exist_ok=True)
+# successful_crop_face_frontal_train = crop_data(
+#     root, dir_train + 'faces/', image_names_arr, _classifier=face_classifier, _mn=20, save_raw=False
+# )
+#
+# # For pictures where face was not found, try finding the profile of the face
+# successful_crop_face_train = successful_crop_face_frontal_train
+# successful_crop_face_profile = crop_data(
+#     root, dir_train + 'faces/', image_names_arr[~successful_crop_face_frontal_train], _classifier=profile_classifier, _mn=20,
+#     save_raw=False
+# )
+# successful_crop_face_train[~successful_crop_face_train] = successful_crop_face_profile
+#
+# np.savetxt(dir_train + 'faces/' + 'successful_crop.csv', successful_crop_face_train, delimiter=',', fmt='%s')
+# data_face_train, data_face_validation = separate_train_and_validation(
+#     image_names_arr[successful_crop_face_train], targets_arr[successful_crop_face_train]
+# )
+# np.savetxt('data_face_train.csv', data_face_train, delimiter=',', fmt='%s')
+# np.savetxt('data_face_validation.csv', data_face_validation, delimiter=',', fmt='%s')
+#
+# # Try to crop out nose
+# os.makedirs(os.path.dirname(dir_train + 'nose/'), exist_ok=True)
+# successful_crop_nose_train = crop_data(
+#     root, dir_train + 'nose/', image_names_arr, _classifier=nose_classifier, _mn=20, save_raw=False
+# )
+# np.savetxt(dir_train + 'nose/' + 'successful_crop.csv', successful_crop_nose_train, delimiter=',', fmt='%s')
+# data_nose_train, data_nose_validation = separate_train_and_validation(
+#     image_names_arr[successful_crop_nose_train], targets_arr[successful_crop_nose_train]
+# )
+# np.savetxt('data_nose_train.csv', data_nose_train, delimiter=',', fmt='%s')
+# np.savetxt('data_nose_validation.csv', data_nose_validation, delimiter=',', fmt='%s')
 
-# Try to crop out faces
-os.makedirs(os.path.dirname(dir_train + 'faces/'), exist_ok=True)
-successful_crop_face_frontal_train = crop_data(
-    root, dir_train + 'faces/', image_names_arr, _classifier=face_classifier, _mn=20, save_raw=False
-)
-
-# For pictures where face was not found, try finding the profile of the face
-successful_crop_face_train = successful_crop_face_frontal_train
-successful_crop_face_profile = crop_data(
-    root, dir_train + 'faces/', image_names_arr[~successful_crop_face_frontal_train], _classifier=profile_classifier, _mn=20,
-    save_raw=False
-)
-successful_crop_face_train[~successful_crop_face_train] = successful_crop_face_profile
-
-np.savetxt(dir_train + 'faces/' + 'successful_crop.csv', successful_crop_face_train, delimiter=',', fmt='%s')
-data_face_train, data_face_validation = separate_train_and_validation(
-    image_names_arr[successful_crop_face_train], targets_arr[successful_crop_face_train]
-)
-np.savetxt('data_face_train.csv', data_face_train, delimiter=',', fmt='%s')
-np.savetxt('data_face_validation.csv', data_face_validation, delimiter=',', fmt='%s')
-
-# Try to crop out nose
-os.makedirs(os.path.dirname(dir_train + 'nose/'), exist_ok=True)
-successful_crop_nose_train = crop_data(
-    root, dir_train + 'nose/', image_names_arr, _classifier=nose_classifier, _mn=20, save_raw=False
-)
-np.savetxt(dir_train + 'nose/' + 'successful_crop.csv', successful_crop_nose_train, delimiter=',', fmt='%s')
-data_nose_train, data_nose_validation = separate_train_and_validation(
-    image_names_arr[successful_crop_nose_train], targets_arr[successful_crop_nose_train]
-)
-np.savetxt('data_nose_train.csv', data_nose_train, delimiter=',', fmt='%s')
-np.savetxt('data_nose_validation.csv', data_nose_validation, delimiter=',', fmt='%s')
-
-# Try to crop out mouth
-os.makedirs(os.path.dirname(dir_train + 'mouth/'), exist_ok=True)
-successful_crop_mouth_train = crop_data(
-    root, dir_train + 'mouth/', image_names_arr, _classifier=mouth_classifier, _mn=20, save_raw=False
-)
-np.savetxt(dir_train + 'mouth/' + 'successful_crop.csv', successful_crop_mouth_train, delimiter=',', fmt='%s')
-data_mouth_train, data_mouth_validation = separate_train_and_validation(
-    image_names_arr[successful_crop_mouth_train], targets_arr[successful_crop_mouth_train]
-)
-np.savetxt('data_mouth_train.csv', data_mouth_train, delimiter=',', fmt='%s')
-np.savetxt('data_mouth_validation.csv', data_mouth_validation, delimiter=',', fmt='%s')
+# # Try to crop out mouth
+# os.makedirs(os.path.dirname(dir_train + 'mouth/'), exist_ok=True)
+# successful_crop_mouth_train = crop_data(
+#     root, dir_train + 'mouth/', image_names_arr, _classifier=mouth_classifier, _mn=20, save_raw=False
+# )
+# np.savetxt(dir_train + 'mouth/' + 'successful_crop.csv', successful_crop_mouth_train, delimiter=',', fmt='%s')
+# data_mouth_train, data_mouth_validation = separate_train_and_validation(
+#     image_names_arr[successful_crop_mouth_train], targets_arr[successful_crop_mouth_train]
+# )
+# np.savetxt('data_mouth_train.csv', data_mouth_train, delimiter=',', fmt='%s')
+# np.savetxt('data_mouth_validation.csv', data_mouth_validation, delimiter=',', fmt='%s')
 
 # CROP TEST DATA ----------------------------------------------------------------------------------------------------- #
 if not SMALL_DATA_SET:  # TODO - update
@@ -181,19 +189,19 @@ if not SMALL_DATA_SET:  # TODO - update
 
     # Save raw images
     os.makedirs(os.path.dirname(dir_test + 'raw/'), exist_ok=True)
-    crop_data(root, dir_test + 'raw/', image_names_test_arr, _classifier=None, save_raw=True)
+    crop_data(root_test, dir_test + 'raw/', image_names_test_arr, _classifier=None, save_raw=True)
     np.savetxt('data_raw_test.csv', image_names_test_arr, delimiter=',', fmt='%s')
 
     # Try to crop out faces
     os.makedirs(os.path.dirname(dir_test + 'faces/'), exist_ok=True)
     successful_crop_face_frontal_test = crop_data(
-        root, dir_test + 'faces/', image_names_test_arr, _classifier=face_classifier, _mn=20, save_raw=False
+        root_test, dir_test + 'faces/', image_names_test_arr, _classifier=face_classifier, _mn=20, save_raw=False
     )
 
     # For pictures where face was not found, try finding the profile of the face
     successful_crop_face_test = successful_crop_face_frontal_test
     successful_crop_face_profile_test = crop_data(
-        root, dir_test + 'faces/', image_names_test_arr[~successful_crop_face_test], _classifier=profile_classifier,
+        root_test, dir_test + 'faces/', image_names_test_arr[~successful_crop_face_test], _classifier=profile_classifier,
         _mn=20,
         save_raw=False
     )
@@ -205,7 +213,7 @@ if not SMALL_DATA_SET:  # TODO - update
     # Try to crop out nose
     os.makedirs(os.path.dirname(dir_test + 'nose/'), exist_ok=True)
     successful_crop_nose_test = crop_data(
-        root, dir_test + 'nose/', image_names_test_arr, _classifier=nose_classifier, _mn=20, save_raw=False
+        root_test, dir_test + 'nose/', image_names_test_arr, _classifier=nose_classifier, _mn=20, save_raw=False
     )
     np.savetxt(dir_test + 'nose/' + 'successful_crop.csv', successful_crop_nose_test, delimiter=',', fmt='%s')
     np.savetxt('data_nose_test.csv', image_names_test_arr[successful_crop_nose_test], delimiter=',', fmt='%s')
@@ -213,6 +221,6 @@ if not SMALL_DATA_SET:  # TODO - update
     # Try to crop out mouth
     os.makedirs(os.path.dirname(dir_test + 'mouth/'), exist_ok=True)
     successful_crop_mouth_test = crop_data(
-        root, dir_test + 'mouth/', image_names_test_arr, _classifier=mouth_classifier, _mn=20, save_raw=False
+        root_test, dir_test + 'mouth/', image_names_test_arr, _classifier=mouth_classifier, _mn=20, save_raw=False
     )
     np.savetxt('data_mouth_test.csv', image_names_test_arr[successful_crop_mouth_test], delimiter=',', fmt='%s')

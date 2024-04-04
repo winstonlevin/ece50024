@@ -11,6 +11,47 @@ from torchvision.io import ImageReadMode
 
 from model_classes import ImageDataset, ImageClassifier, train, validate
 
+# Load training and validation data ---------------------------------------------------------------------------------- #
+root = '../tmp/minichallenge_data/train_cropped_multifeature/'
+categories = list(np.loadtxt('category.csv', delimiter=',', skiprows=1, usecols=1, dtype=str))
+n_categories = len(categories)
+
+# Training data
+targets_raw_train = np.loadtxt('data_raw_train.csv', delimiter=',', usecols=0, dtype=int)
+images_raw_train = list(np.loadtxt('data_raw_train.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_raw_train)):
+    images_raw_train[idx] = 'raw/' + images_raw_train[idx]
+targets_face_train = np.loadtxt('data_face_train.csv', delimiter=',', usecols=0, dtype=int)
+images_face_train = list(np.loadtxt('data_face_train.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_face_train)):
+    images_face_train[idx] = 'faces/' + images_face_train[idx]
+targets_nose_train = np.loadtxt('data_nose_train.csv', delimiter=',', usecols=0, dtype=int)
+images_nose_train = list(np.loadtxt('data_nose_train.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_nose_train)):
+    images_nose_train[idx] = 'nose/' + images_nose_train[idx]
+targets_mouth_train = np.loadtxt('data_mouth_train.csv', delimiter=',', usecols=0, dtype=int)
+images_mouth_train = list(np.loadtxt('data_mouth_train.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_mouth_train)):
+    images_mouth_train[idx] = 'mouth/' + images_mouth_train[idx]
+
+# Validation data
+targets_raw_validation = np.loadtxt('data_raw_validation.csv', delimiter=',', usecols=0, dtype=int)
+images_raw_validation = list(np.loadtxt('data_raw_validation.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_raw_validation)):
+    images_raw_validation[idx] = 'raw/' + images_raw_validation[idx]
+targets_face_validation = np.loadtxt('data_face_validation.csv', delimiter=',', usecols=0, dtype=int)
+images_face_validation = list(np.loadtxt('data_face_validation.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_face_validation)):
+    images_face_validation[idx] = 'faces/' + images_face_validation[idx]
+targets_nose_validation = np.loadtxt('data_nose_validation.csv', delimiter=',', usecols=0, dtype=int)
+images_nose_validation = list(np.loadtxt('data_nose_validation.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_nose_validation)):
+    images_nose_validation[idx] = 'nose/' + images_nose_validation[idx]
+targets_mouth_validation = np.loadtxt('data_mouth_validation.csv', delimiter=',', usecols=0, dtype=int)
+images_mouth_validation = list(np.loadtxt('data_mouth_validation.csv', delimiter=',', usecols=1, dtype=str))
+for idx in range(len(images_mouth_validation)):
+    images_mouth_validation[idx] = 'mouth/' + images_mouth_validation[idx]
+
 # Hyperparameters/Transformation of images --------------------------------------------------------------------------- #
 # n_filters = 64
 batch_size = 32
@@ -47,47 +88,6 @@ include_no_image = True
 image_read_mode = ImageReadMode.GRAY
 transform_test = transforms.Resize((n_pixels, n_pixels))
 transform_train = transform_test
-
-# Load training and validation data ---------------------------------------------------------------------------------- #
-root = '../tmp/minichallenge_data/train_cropped_multifeature/'
-categories = list(np.loadtxt('category.csv', delimiter=',', skiprows=1, usecols=1, dtype=str))
-n_categories = len(categories)
-
-# Training data
-targets_raw_train = np.loadtxt('data_raw_train.csv', delimiter=',', usecols=0, dtype=int)
-images_raw_train = np.loadtxt('data_raw_train.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_raw_train)):
-    images_raw_train[idx] += 'raw/'
-targets_face_train = np.loadtxt('data_face_train.csv', delimiter=',', usecols=0, dtype=int)
-images_face_train = np.loadtxt('data_face_train.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_face_train)):
-    images_face_train[idx] += 'faces/'
-targets_nose_train = np.loadtxt('data_nose_train.csv', delimiter=',', usecols=0, dtype=int)
-images_nose_train = np.loadtxt('data_nose_train.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_nose_train)):
-    images_nose_train[idx] += 'nose/'
-targets_mouth_train = np.loadtxt('data_mouth_train.csv', delimiter=',', usecols=0, dtype=int)
-images_mouth_train = np.loadtxt('data_mouth_train.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_mouth_train)):
-    images_mouth_train[idx] += 'mouth/'
-
-# Validation data
-targets_raw_validation = np.loadtxt('data_raw_validation.csv', delimiter=',', usecols=0, dtype=int)
-images_raw_validation = np.loadtxt('data_raw_validation.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_raw_validation)):
-    images_raw_validation[idx] += 'raw/'
-targets_face_validation = np.loadtxt('data_face_validation.csv', delimiter=',', usecols=0, dtype=int)
-images_face_validation = np.loadtxt('data_face_validation.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_face_validation)):
-    images_face_validation[idx] += 'faces/'
-targets_nose_validation = np.loadtxt('data_nose_validation.csv', delimiter=',', usecols=0, dtype=int)
-images_nose_validation = np.loadtxt('data_nose_validation.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_nose_validation)):
-    images_nose_validation[idx] += 'nose/'
-targets_mouth_validation = np.loadtxt('data_mouth_validation.csv', delimiter=',', usecols=0, dtype=int)
-images_mouth_validation = np.loadtxt('data_mouth_validation.csv', delimiter=',', usecols=1, dtype=str)
-for idx in range(len(images_mouth_validation)):
-    images_mouth_validation[idx] += 'mouth/'
 
 # Make Data loaders -------------------------------------------------------------------------------------------------- #
 # Add 1% no-category inputs
@@ -187,9 +187,10 @@ for curr_idx, epochs_max in enumerate(curriculum_epochs_max):
         elapsed_minutes = int((elapsed_time - 3600*elapsed_hours) // 60)
         elapsed_seconds = int(elapsed_time - 3600*elapsed_hours - 60 * elapsed_minutes)
         print(
-            f"Epoch {epoch + 1}/{epochs_max}, Train Loss: {train_loss:.4f}, "
-            f"Test Accuracy: {acc_overall/100:.2%}, "
-            f"Epoch Time: {elapsed_hours:02d}:{elapsed_minutes:02d}:{elapsed_seconds:02d}"
+            f"Epoch {epoch + 1}/{epochs_max} (Train Loss: {train_loss:.4f}, "
+            f"Epoch Time: {elapsed_hours:02d}:{elapsed_minutes:02d}:{elapsed_seconds:02d})\n"
+            f"Test Accuracy: {acc_overall/100:.2%} ({acc_raw/100:.0%} Raw, {acc_face/100:.0%} Face, "
+            f"{acc_nose/100:.0%} Nose, {acc_mouth/100:.0%} Mouth)"
         )
         if epoch > 2 and model.test_accuracies[-1][-1] < model.test_accuracies[-1][-2] < model.test_accuracies[-1][-3]:
             # Unsuccessful break (accuracy is diminishing, so overtraining is occurring)
