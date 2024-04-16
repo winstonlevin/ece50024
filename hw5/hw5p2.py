@@ -44,6 +44,8 @@ idx_rand = rng.integers(low=0, high=num_coins, size=(num_trials, 1))
 mask_rand = idces_arr == idx_rand
 idx_min = freq_heads.argmin(axis=-1, keepdims=True)
 mask_min = idces_arr == idx_min
+idx_max = freq_heads.argmax(axis=-1, keepdims=True)
+mask_max = idces_arr == idx_max
 
 
 def pick_coin(_coin_flips, _mask):
@@ -55,6 +57,7 @@ def pick_coin(_coin_flips, _mask):
 coin1, v1 = pick_coin(coin_flips, mask1)
 coin_rand, v_rand = pick_coin(coin_flips, mask_rand)
 coin_min, v_min = pick_coin(coin_flips, mask_min)
+coin_max, v_max = pick_coin(coin_flips, mask_max)
 
 
 def plot_hist(_distro: np.ndarray, _x_lab: str = r'$V$', _y_lab: str = r'$P(V)$'):
@@ -70,9 +73,9 @@ def plot_hist(_distro: np.ndarray, _x_lab: str = r'$V$', _y_lab: str = r'$P(V)$'
 
 
 for distro, x_lab, y_lab, output_name in zip(
-        (v1, v_rand, v_min), (r'$V_1$', r'$V_{rand}$', r'$V_{min}$'),
-        (r'$P(V_1)$', r'$P(V_{rand})$', r'$P(V_{min})$'),
-        ('p2b_1_output', 'p2b_rand_output', 'p2b_min_output')
+        (v1, v_rand, v_min, v_max), (r'$V_1$', r'$V_{rand}$', r'$V_{min}$', r'$V_{max}$'),
+        (r'$P(V_1)$', r'$P(V_{rand})$', r'$P(V_{min})$', r'$P(V_{max})$'),
+        ('p2b_1_output', 'p2b_rand_output', 'p2b_min_output', 'p2b_quiz_output')
 ):
     fig = plot_hist(distro, _x_lab=x_lab, _y_lab=y_lab)
     fig.savefig(output_name + '.svg')
